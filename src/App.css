@@ -149,6 +149,52 @@ body {
     margin: 8px 0 !important;
     padding: 8px !important;
   }
+
+  /* 모바일에서 검색창 고정 */
+  .mobile-search-container {
+    position: sticky;
+    top: 56px; /* AppBar 높이 */
+    z-index: 1000;
+    margin-bottom: 12px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* 모바일에서 하단 탭 메뉴 고정 */
+  .mobile-bottom-tabs {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    border-radius: 0 !important;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* 모바일에서 콘텐츠 영역 패딩 조정 */
+  .mobile-tabs-content {
+    padding-bottom: 80px !important; /* 하단 탭 메뉴 높이 + 약간의 여백 */
+    margin-bottom: 56px;
+  }
+
+  /* 모바일 앨범 아트 크기 최적화 */
+  .mobile-album-art {
+    width: 140px !important;
+    margin: 4px !important;
+  }
+
+  /* 모바일 텍스트 크기 최적화 */
+  .mobile-title {
+    font-size: 14px !important;
+  }
+
+  .mobile-subtitle {
+    font-size: 12px !important;
+  }
+
+  .mobile-tabs .MuiTab-root {
+    min-height: 56px;
+    padding: 6px 10px;
+  }
 }
 
 .App {
@@ -440,4 +486,45 @@ body {
   100% {
     box-shadow: 0 0 0 0 rgba(0, 191, 255, 0);
   }
+}
+
+/* 모바일 검색창 - 상단 고정 */
+.mobile-search-container {
+  position: sticky;
+  top: 56px; /* AppBar 높이 */
+  z-index: 1000;
+  margin-bottom: 12px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1100;
+}
+
+/* 모바일 하단 탭 메뉴 */
+.mobile-bottom-tabs {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1050;
+  border-radius: 0 !important;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 모바일 콘텐츠 영역 여백 */
+.mobile-content {
+  padding-bottom: 80px !important; /* 하단 탭 메뉴 높이 + 약간의 여백 */
+}
+
+/* 모바일 탭 내용 영역 */
+.mobile-tabs-content {
+  margin-bottom: 56px;
+}
+
+.mobile-tabs .MuiTab-root {
+  min-height: 56px;
+  padding: 6px 10px;
 }

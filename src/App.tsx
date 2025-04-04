@@ -1367,91 +1367,106 @@ function App() {
             </Toolbar>
           </AppBar>
 
+          {/* 검색창 (모바일에서는 상단에 고정) */}
+          <Paper
+            sx={{ mb: isMobile ? 1 : 2, p: isMobile ? 1 : 2 }}
+            className={isMobile ? "mobile-card mobile-search-container" : ""}
+          >
+            <TextField
+              fullWidth
+              placeholder="음악 검색..."
+              variant="outlined"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch(searchQuery);
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => handleSearch(searchQuery)}
+                      edge="end"
+                      size={isMobile ? "small" : "medium"}
+                    >
+                      <SearchIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+              size={isMobile ? "small" : "medium"}
+              className={isMobile ? "mobile-search-field" : ""}
+            />
+          </Paper>
+
           <Container
             maxWidth="lg"
-            sx={{ mt: isMobile ? 1 : 2, mb: isMobile ? 8 : 10, flexGrow: 1 }}
+            sx={{ flexGrow: 1, mb: isMobile ? 0 : 10, mt: isMobile ? 0 : 2 }}
             className={isMobile ? "mobile-content" : ""}
           >
-            <Paper
-              sx={{ mb: isMobile ? 1 : 2, p: isMobile ? 1 : 2 }}
-              className={isMobile ? "mobile-card" : ""}
-            >
-              <TextField
-                fullWidth
-                placeholder="음악 검색..."
-                variant="outlined"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearch(searchQuery);
-                  }
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchQuery && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => handleSearch(searchQuery)}
-                        edge="end"
-                        size={isMobile ? "small" : "medium"}
-                      >
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                size={isMobile ? "small" : "medium"}
-                className={isMobile ? "mobile-search-field" : ""}
-              />
-            </Paper>
+            {/* 데스크탑에서는 상단에 탭 메뉴 */}
+            {!isMobile && (
+              <Paper elevation={3} sx={{ mb: 3 }}>
+                <Tabs
+                  value={mainTabValue}
+                  onChange={handleMainTabChange}
+                  variant="fullWidth"
+                  indicatorColor="primary"
+                  textColor="primary"
+                >
+                  <Tab icon={<HomeIcon />} label="홈" />
+                  <Tab icon={<HistoryIcon />} label="기록" />
+                  <Tab icon={<LibraryMusic />} label="플레이리스트" />
+                  <Tab icon={<DownloadIcon />} label="저장됨" />
+                </Tabs>
 
-            <Paper
-              elevation={3}
-              sx={{ mb: isMobile ? 2 : 3 }}
-              className={isMobile ? "mobile-card" : ""}
-            >
-              <Tabs
-                value={mainTabValue}
-                onChange={handleMainTabChange}
-                variant="fullWidth"
-                indicatorColor="primary"
-                textColor="primary"
-                className={isMobile ? "mobile-tabs" : ""}
-              >
-                <Tab
-                  icon={<HomeIcon />}
-                  label={isMobile ? "" : "홈"}
-                  aria-label="홈"
-                />
-                <Tab
-                  icon={<HistoryIcon />}
-                  label={isMobile ? "" : "기록"}
-                  aria-label="기록"
-                />
-                <Tab
-                  icon={<LibraryMusic />}
-                  label={isMobile ? "" : "플레이리스트"}
-                  aria-label="플레이리스트"
-                />
-                <Tab
-                  icon={<DownloadIcon />}
-                  label={isMobile ? "" : "저장됨"}
-                  aria-label="저장됨"
-                />
-              </Tabs>
+                <Box sx={{ p: 3 }}>
+                  {mainTabValue === 0 && renderHomeTab()}
+                  {mainTabValue === 1 && renderHistoryTab()}
+                  {mainTabValue === 2 && renderPlaylistsTab()}
+                  {mainTabValue === 3 && renderDownloadsTab()}
+                </Box>
+              </Paper>
+            )}
 
-              <Box sx={{ p: isMobile ? 1.5 : 3 }}>
-                {mainTabValue === 0 && renderHomeTab()}
-                {mainTabValue === 1 && renderHistoryTab()}
-                {mainTabValue === 2 && renderPlaylistsTab()}
-                {mainTabValue === 3 && renderDownloadsTab()}
-              </Box>
-            </Paper>
+            {/* 모바일에서는 하단에 고정된 탭 메뉴와 별도의 콘텐츠 영역 */}
+            {isMobile && (
+              <>
+                <Box sx={{ p: 1.5 }} className="mobile-tabs-content">
+                  {mainTabValue === 0 && renderHomeTab()}
+                  {mainTabValue === 1 && renderHistoryTab()}
+                  {mainTabValue === 2 && renderPlaylistsTab()}
+                  {mainTabValue === 3 && renderDownloadsTab()}
+                </Box>
+
+                <Paper elevation={3} className="mobile-bottom-tabs">
+                  <Tabs
+                    value={mainTabValue}
+                    onChange={handleMainTabChange}
+                    variant="fullWidth"
+                    indicatorColor="primary"
+                    textColor="primary"
+                    className="mobile-tabs"
+                  >
+                    <Tab icon={<HomeIcon />} label="" aria-label="홈" />
+                    <Tab icon={<HistoryIcon />} label="" aria-label="기록" />
+                    <Tab
+                      icon={<LibraryMusic />}
+                      label=""
+                      aria-label="플레이리스트"
+                    />
+                    <Tab icon={<DownloadIcon />} label="" aria-label="저장됨" />
+                  </Tabs>
+                </Paper>
+              </>
+            )}
           </Container>
 
           <Drawer
