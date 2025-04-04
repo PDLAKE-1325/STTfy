@@ -8,6 +8,7 @@ import {
   Paper,
   useTheme,
   useMediaQuery,
+  Button,
 } from "@mui/material";
 import {
   PlayArrow,
@@ -20,7 +21,7 @@ import {
 import { Video } from "../types";
 import "../App.css";
 
-// 화면 재생 콘텐츠를 렌더링하는 별도의 컴포넌트
+// 화면 재생 콘텐츠를 렌더링하는 별도의 컴포넌트를 수정하여 needsUserInteraction 상태 추가
 export const NowPlayingContent: React.FC<{
   currentVideo: Video | null;
   isPlaying: boolean;
@@ -38,6 +39,8 @@ export const NowPlayingContent: React.FC<{
   formatTime: (time: number) => string;
   hasNextTrack: boolean;
   hasPreviousTrack: boolean;
+  needsUserInteraction?: boolean;
+  attemptUnmute?: () => void;
 }> = ({
   currentVideo,
   isPlaying,
@@ -55,6 +58,8 @@ export const NowPlayingContent: React.FC<{
   formatTime,
   hasNextTrack,
   hasPreviousTrack,
+  needsUserInteraction,
+  attemptUnmute,
 }) => {
   if (!currentVideo) return null;
 
@@ -69,6 +74,37 @@ export const NowPlayingContent: React.FC<{
         pt: 0,
       }}
     >
+      {/* iOS 음소거 상태 알림 */}
+      {needsUserInteraction && (
+        <Box
+          sx={{
+            width: "100%",
+            bgcolor: "rgba(0,0,0,0.7)",
+            py: 1,
+            px: 2,
+            borderRadius: 2,
+            mb: 2,
+            textAlign: "center",
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{ color: "#1db954", fontWeight: "bold" }}
+          >
+            화면을 터치하여 오디오를 활성화하세요
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            color="primary"
+            sx={{ mt: 1, borderColor: "#1db954", color: "#1db954" }}
+            onClick={() => attemptUnmute && attemptUnmute()}
+          >
+            오디오 활성화
+          </Button>
+        </Box>
+      )}
+
       {/* 앨범 아트 */}
       <Box
         sx={{
@@ -90,6 +126,7 @@ export const NowPlayingContent: React.FC<{
             height: "100%",
             objectFit: "cover",
           }}
+          onClick={() => attemptUnmute && attemptUnmute()}
         />
       </Box>
 
@@ -143,7 +180,10 @@ export const NowPlayingContent: React.FC<{
         }}
       >
         <IconButton
-          onClick={handlePrevious}
+          onClick={(e) => {
+            handlePrevious(e);
+            attemptUnmute && attemptUnmute();
+          }}
           disabled={!hasPreviousTrack}
           sx={{
             color: "white",
@@ -154,7 +194,10 @@ export const NowPlayingContent: React.FC<{
         </IconButton>
 
         <IconButton
-          onClick={togglePlayPause}
+          onClick={(e) => {
+            togglePlayPause(e);
+            attemptUnmute && attemptUnmute();
+          }}
           className="play-button"
           sx={{
             color: "white",
@@ -172,7 +215,10 @@ export const NowPlayingContent: React.FC<{
         </IconButton>
 
         <IconButton
-          onClick={handleNext}
+          onClick={(e) => {
+            handleNext(e);
+            attemptUnmute && attemptUnmute();
+          }}
           disabled={!hasNextTrack}
           sx={{
             color: "white",
@@ -195,7 +241,10 @@ export const NowPlayingContent: React.FC<{
         }}
       >
         <IconButton
-          onClick={onToggleMute}
+          onClick={(e) => {
+            onToggleMute(e);
+            attemptUnmute && attemptUnmute();
+          }}
           sx={{ color: "rgba(255,255,255,0.7)", mr: 1 }}
         >
           {isMuted || volume === 0 ? <VolumeOff /> : <VolumeUp />}
@@ -251,6 +300,8 @@ export interface MusicPlayerState {
   handleVolumeChange: (event: Event, newValue: number | number[]) => void;
   handleProgressChange: (event: Event, newValue: number | number[]) => void;
   formatTime: (time: number) => string;
+  needsUserInteraction?: boolean;
+  attemptUnmute?: () => boolean;
 }
 
 // 재생 상태를 모니터링하기 위한 리스너 함수형 타입
@@ -314,6 +365,9 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [videoViews, setVideoViews] = useState<string>("");
+  const [isIOS, setIsIOS] = useState(false);
+  const [needsUserInteraction, setNeedsUserInteraction] = useState(false);
+  const interactionRef = useRef(false);
 
   // 플레이어 참조
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -331,7 +385,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     playerVars: {
       autoplay: 1,
       controls: 0,
-      mute: 0,
+      mute: isIOS ? 1 : 0,
       disablekb: 1,
       fs: 0,
       modestbranding: 1,
@@ -344,16 +398,25 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // 플레이어 준비 완료 핸들러
   const handleReady = (event: YouTubeEvent) => {
-    console.log("YouTube Player Ready");
+    console.log("YouTube Player Ready, iOS:", isIOS);
     playerRef.current = event.target;
 
     if (playerRef.current) {
       // 초기 상태 설정
       try {
-        // 볼륨 설정 및 음소거 해제
-        playerRef.current.setVolume(volume);
-        playerRef.current.unMute();
-        setIsMuted(false);
+        // iOS에서는 초기에 음소거된 상태로 시작
+        if (!isIOS) {
+          // 비 iOS 디바이스
+          playerRef.current.setVolume(volume);
+          playerRef.current.unMute();
+          setIsMuted(false);
+        } else {
+          // iOS 디바이스 - 음소거 상태 유지
+          setIsMuted(true);
+          console.log(
+            "iOS 디바이스: 음소거 상태로 시작, 화면 터치시 소리가 활성화됩니다"
+          );
+        }
 
         // 영상 길이 설정
         const videoDuration = playerRef.current.getDuration();
@@ -561,6 +624,23 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     return formatTimeHelper(time);
   };
 
+  // 음소거 해제 시도 함수
+  const attemptUnmute = () => {
+    if (playerRef.current && needsUserInteraction) {
+      try {
+        console.log("음소거 해제 시도");
+        playerRef.current.unMute();
+        playerRef.current.setVolume(volume);
+        setIsMuted(false);
+        setNeedsUserInteraction(false);
+        return true;
+      } catch (err) {
+        console.error("음소거 해제 시도 중 오류:", err);
+      }
+    }
+    return false;
+  };
+
   // 컴포넌트 정리
   useEffect(() => {
     return () => stopProgressTracking();
@@ -640,10 +720,69 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       handleVolumeChange,
       handleProgressChange,
       formatTime,
+      needsUserInteraction,
+      attemptUnmute,
     };
 
     notifyStateListeners(state);
-  }, [isPlaying, currentTime, duration, volume, isMuted, videoViews]);
+  }, [
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    isMuted,
+    videoViews,
+    needsUserInteraction,
+  ]);
+
+  // iOS 감지 함수 추가
+  useEffect(() => {
+    // iOS 디바이스 감지
+    const detectIOS = () => {
+      const userAgent = navigator.userAgent;
+      const isIOSDevice =
+        /iPad|iPhone|iPod/.test(userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+      setIsIOS(isIOSDevice);
+      setNeedsUserInteraction(isIOSDevice);
+      console.log("iOS 디바이스 감지:", isIOSDevice);
+    };
+
+    detectIOS();
+
+    // iOS에서 사용자 상호작용 감지를 위한 이벤트 리스너
+    const handleUserInteraction = () => {
+      if (needsUserInteraction && !interactionRef.current) {
+        console.log("사용자 상호작용 감지됨, 오디오 활성화 시도");
+        interactionRef.current = true;
+
+        // 플레이어가 준비되었으면 음소거 해제
+        if (playerRef.current) {
+          try {
+            playerRef.current.unMute();
+            playerRef.current.setVolume(volume);
+            setIsMuted(false);
+            setNeedsUserInteraction(false);
+          } catch (e) {
+            console.error("음소거 해제 중 오류:", e);
+          }
+        }
+      }
+    };
+
+    // 다양한 사용자 상호작용 이벤트 리스닝
+    const interactionEvents = ["touchstart", "touchend", "click", "keydown"];
+    interactionEvents.forEach((event) => {
+      document.addEventListener(event, handleUserInteraction, { once: false });
+    });
+
+    return () => {
+      interactionEvents.forEach((event) => {
+        document.removeEventListener(event, handleUserInteraction);
+      });
+    };
+  }, [needsUserInteraction, volume]);
 
   // 미니 플레이어 렌더링
   const renderMiniPlayer = () => {
@@ -663,7 +802,26 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
           bgcolor: "background.paper",
           overflow: "hidden",
         }}
-        onClick={onNavigateToNowPlaying}
+        onClick={(e) => {
+          if (needsUserInteraction) {
+            // iOS에서 첫 상호작용시 오디오 활성화 시도
+            if (playerRef.current) {
+              try {
+                playerRef.current.unMute();
+                playerRef.current.setVolume(volume);
+                setIsMuted(false);
+                setNeedsUserInteraction(false);
+              } catch (err) {
+                console.error("음소거 해제 시도 중 오류:", err);
+              }
+            }
+          }
+
+          // 기본 클릭 핸들러 실행
+          if (onNavigateToNowPlaying) {
+            onNavigateToNowPlaying();
+          }
+        }}
       >
         {/* 진행 상태 바 */}
         <Box className="progress-container">
@@ -688,6 +846,25 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
             />
           </Box>
         </Box>
+
+        {/* iOS 음소거 상태 알림 */}
+        {needsUserInteraction && (
+          <Box
+            sx={{
+              width: "100%",
+              bgcolor: "rgba(0,0,0,0.7)",
+              py: 0.5,
+              textAlign: "center",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "#1db954", fontWeight: "bold" }}
+            >
+              터치하여 오디오 활성화
+            </Typography>
+          </Box>
+        )}
 
         {/* 컨트롤 */}
         <Box
@@ -736,7 +913,22 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
           {/* 재생 버튼 */}
           <IconButton
-            onClick={togglePlayPause}
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlayPause();
+
+              // iOS에서는 이 버튼 클릭으로도 음소거 해제 시도
+              if (needsUserInteraction && playerRef.current) {
+                try {
+                  playerRef.current.unMute();
+                  playerRef.current.setVolume(volume);
+                  setIsMuted(false);
+                  setNeedsUserInteraction(false);
+                } catch (err) {
+                  console.error("음소거 해제 시도 중 오류:", err);
+                }
+              }
+            }}
             className="play-button"
             size="small"
             sx={{

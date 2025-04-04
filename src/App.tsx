@@ -169,6 +169,8 @@ function App() {
     handleVolumeChange: (event: Event, newValue: number | number[]) => {},
     handleProgressChange: (event: Event, newValue: number | number[]) => {},
     formatTime: formatTimeHelper,
+    needsUserInteraction: false,
+    attemptUnmute: () => false,
   });
 
   // 음악 플레이어 상태 모니터링 콜백
@@ -1619,6 +1621,8 @@ function App() {
             e.stopPropagation();
             handleNextTrack();
           }}
+          needsUserInteraction={playerStateObj.needsUserInteraction}
+          attemptUnmute={playerStateObj.attemptUnmute}
         />
       </Box>
     );
