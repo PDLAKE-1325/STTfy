@@ -533,15 +533,16 @@ body {
   animation: pulse 1.5s infinite;
 }
 
+/* 애니메이션 효과 */
 @keyframes pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(0, 191, 255, 0.4);
+    opacity: 1;
   }
-  70% {
-    box-shadow: 0 0 0 10px rgba(0, 191, 255, 0);
+  50% {
+    opacity: 0.6;
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(0, 191, 255, 0);
+    opacity: 1;
   }
 }
 

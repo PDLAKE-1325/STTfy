@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ThemeProvider,
   createTheme,
@@ -27,6 +27,7 @@ import {
   DialogContent,
   DialogActions,
   useMediaQuery,
+  Stack,
 } from "@mui/material";
 import { HashRouter as Router } from "react-router-dom";
 import {
@@ -38,6 +39,14 @@ import {
   Download as DownloadIcon,
   Home as HomeIcon,
   Delete as DeleteIcon,
+  MusicNote as MusicNoteIcon,
+  RepeatOne,
+  Repeat,
+  SkipPrevious,
+  PlayArrow,
+  Pause,
+  SkipNext,
+  Shuffle,
 } from "@mui/icons-material";
 import { Video, Playlist } from "./types";
 import Search from "./components/Search";
@@ -54,6 +63,7 @@ import Login from "./components/Auth/Login";
 import ProfileMenu from "./components/ProfileMenu";
 import { AuthProvider } from "./contexts/AuthContext";
 import InstallPWA from "./components/InstallPWA";
+import YouTube, { YouTubePlayer } from "react-youtube";
 
 const darkTheme = createTheme({
   palette: {
@@ -87,6 +97,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Video[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [shouldShowPlayer, setShouldShowPlayer] = useState(false);
 
   // 플레이리스트 관련 상태
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -141,24 +152,15 @@ function App() {
   const [currentDownloadIndex, setCurrentDownloadIndex] = useState(-1);
 
   // 이전/다음 트랙 존재 여부
-  const hasPreviousTrack =
-    isPlayingPlaylist &&
-    ((currentPlaylistId && currentPlaylistIndex > 0) ||
-      (currentPlaylistId === null && currentDownloadIndex > 0));
+  const [hasPreviousTrack, setHasPreviousTrack] = useState(false);
+  const [hasNextTrack, setHasNextTrack] = useState(false);
 
-  const hasNextTrack =
-    isPlayingPlaylist &&
-    ((currentPlaylistId &&
-      currentPlaylistIndex < getPlaylistTrackCount() - 1) ||
-      (currentPlaylistId === null &&
-        currentDownloadIndex < downloadedVideos.length - 1));
+  // 음악 플레이어 관련 상태
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isShuffle, setIsShuffle] = useState(false);
 
-  // 현재 재생 중인 플레이리스트의 트랙 수 가져오기
-  function getPlaylistTrackCount(): number {
-    if (!currentPlaylistId) return 0;
-    const playlist = playlists.find((p) => p.id === currentPlaylistId);
-    return playlist ? playlist.videos.length : 0;
-  }
+  // 플레이어 참조
+  const playerRef = useRef<YouTubePlayer | null>(null);
 
   // 로그인 필요 기능 확인
   const checkLoginRequired = (feature: string): boolean => {
@@ -390,29 +392,27 @@ function App() {
     }
   };
 
-  // 일반 비디오 선택 시 처리 함수
+  // 히스토리에 저장하는 함수
+  const saveToHistory = (video: Video) => {
+    // 이미 기록에 있으면 중복 제거하고 최신 항목으로 추가
+    setHistory((prevHistory) => {
+      const filtered = prevHistory.filter((item) => item.id !== video.id);
+      return [video, ...filtered];
+    });
+  };
+
+  // 음악 선택 핸들러 수정
   const handleVideoSelect = (video: Video) => {
-    // 플레이리스트 재생 모드 해제
-    setIsPlayingPlaylist(false);
-    setCurrentPlaylistIndex(-1);
-    setCurrentPlaylistId(null);
-    setCurrentDownloadIndex(-1);
-
-    // 현재 재생 중인 곡과 다른 경우에만 재생기록 스택에 추가
-    if (currentVideo && currentVideo.id !== video.id) {
-      setPlaybackStack((prevStack) => [...prevStack, currentVideo]);
-    }
-
-    // 선택한 비디오 재생
     setCurrentVideo(video);
+    saveToHistory(video);
+    showSnackbar(`'${video.title.substring(0, 30)}...' 재생 시작`, "success");
 
-    // 시청 기록에 추가 (중복 제거)
-    addToHistoryWithoutDuplicates(video);
-
-    // 아직 대기열에 없다면 대기열에 추가
-    if (!queue.some((item) => item.id === video.id)) {
-      setQueue((prev) => [...prev, video]);
-    }
+    // 음악 재생 탭으로 이동
+    setShouldShowPlayer(true);
+    // setTimeout을 통해 탭 변경 처리 (UI 업데이트 시간을 위한 약간의 지연)
+    setTimeout(() => {
+      setMainTabValue(4); // 새로운 음악 탭 인덱스
+    }, 100);
   };
 
   // 이전 곡 재생 처리
@@ -1360,6 +1360,254 @@ function App() {
     );
   };
 
+  // 음악 재생 탭 렌더링
+  const renderNowPlayingTab = () => {
+    if (!currentVideo) {
+      return (
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="body1" color="text.secondary">
+            재생 중인 음악이 없습니다. 음악을 선택해 주세요.
+          </Typography>
+        </Box>
+      );
+    }
+
+    return (
+      <Box sx={{ p: 2, height: "100%" }}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: 3,
+            mb: 2,
+            borderRadius: "12px",
+            background: `linear-gradient(to bottom, rgba(18, 18, 18, 0.7), rgba(18, 18, 18, 0.95)), url(${currentVideo.thumbnail})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          <Box sx={{ textAlign: "center", mb: 3 }}>
+            <img
+              src={currentVideo.thumbnail}
+              alt={currentVideo.title}
+              style={{
+                width: "280px",
+                height: "280px",
+                objectFit: "cover",
+                borderRadius: "12px",
+                boxShadow: "0 8px 16px rgba(0, 0, 0, 0.3)",
+              }}
+            />
+          </Box>
+
+          <Typography
+            variant="h5"
+            sx={{
+              textAlign: "center",
+              mb: 1,
+              fontWeight: "bold",
+              textShadow: "0 2px 4px rgba(0,0,0,0.3)",
+            }}
+          >
+            {currentVideo.title}
+          </Typography>
+
+          <Typography
+            variant="subtitle1"
+            color="text.secondary"
+            sx={{
+              textAlign: "center",
+              mb: 3,
+              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+            }}
+          >
+            {currentVideo.channelTitle}
+          </Typography>
+
+          <Box sx={{ mt: 3 }}>
+            <Stack
+              direction="row"
+              spacing={2}
+              justifyContent="center"
+              sx={{ mb: 4 }}
+            >
+              <IconButton
+                onClick={handleToggleRepeatMode}
+                color={repeatMode !== "none" ? "primary" : "default"}
+                sx={{
+                  transition: "all 0.2s ease",
+                  "&:hover": { transform: "scale(1.1)" },
+                }}
+              >
+                {repeatMode === "one" ? <RepeatOne /> : <Repeat />}
+              </IconButton>
+
+              <IconButton
+                onClick={handlePreviousTrack}
+                disabled={!hasPreviousTrack && history.length === 0}
+                sx={{
+                  transition: "all 0.2s ease",
+                  "&:hover": { transform: "scale(1.1)" },
+                }}
+              >
+                <SkipPrevious />
+              </IconButton>
+
+              <IconButton
+                onClick={() => {
+                  if (playerRef.current) {
+                    if (isPlaying) {
+                      playerRef.current.pauseVideo();
+                    } else {
+                      playerRef.current.playVideo();
+                    }
+                    setIsPlaying(!isPlaying);
+                  }
+                }}
+                sx={{
+                  bgcolor: "primary.main",
+                  color: "white",
+                  width: 60,
+                  height: 60,
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    transform: "scale(1.1)",
+                    bgcolor: "primary.dark",
+                  },
+                }}
+              >
+                {isPlaying ? (
+                  <Pause fontSize="large" />
+                ) : (
+                  <PlayArrow fontSize="large" />
+                )}
+              </IconButton>
+
+              <IconButton
+                onClick={handleNextTrack}
+                disabled={queue.length === 0 && !hasNextTrack}
+                sx={{
+                  transition: "all 0.2s ease",
+                  "&:hover": { transform: "scale(1.1)" },
+                }}
+              >
+                <SkipNext />
+              </IconButton>
+
+              <IconButton
+                onClick={handleToggleShuffle}
+                color={isShuffle ? "primary" : "default"}
+                sx={{
+                  transition: "all 0.2s ease",
+                  "&:hover": { transform: "scale(1.1)" },
+                }}
+              >
+                <Shuffle />
+              </IconButton>
+            </Stack>
+          </Box>
+        </Paper>
+
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            다음 재생
+          </Typography>
+          <Paper
+            elevation={2}
+            sx={{ maxHeight: "300px", overflow: "auto", mb: 4, p: 1 }}
+          >
+            {queue.length > 0 ? (
+              queue.map((video, index) => (
+                <Box
+                  key={`${video.id}-${index}`}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    p: 1,
+                    mb: 1,
+                    borderRadius: "8px",
+                    "&:hover": { bgcolor: "rgba(255, 255, 255, 0.05)" },
+                  }}
+                >
+                  <Avatar
+                    variant="rounded"
+                    src={video.thumbnail}
+                    alt={video.title}
+                    sx={{ width: 50, height: 50, mr: 2 }}
+                  />
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography variant="body2" noWrap>
+                      {video.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {video.channelTitle}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={() => handleRemoveFromQueue(video.id)}
+                    sx={{ color: "error.main" }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              ))
+            ) : (
+              <Typography variant="body2" sx={{ p: 2, textAlign: "center" }}>
+                대기열에 음악이 없습니다
+              </Typography>
+            )}
+          </Paper>
+        </Box>
+
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            최근 재생
+          </Typography>
+          <Paper
+            elevation={2}
+            sx={{ maxHeight: "300px", overflow: "auto", p: 1 }}
+          >
+            {history.length > 0 ? (
+              history.slice(0, 5).map((video, index) => (
+                <Box
+                  key={`${video.id}-${index}`}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    p: 1,
+                    mb: 1,
+                    borderRadius: "8px",
+                    "&:hover": { bgcolor: "rgba(255, 255, 255, 0.05)" },
+                  }}
+                  onClick={() => handleVideoSelect(video)}
+                >
+                  <Avatar
+                    variant="rounded"
+                    src={video.thumbnail}
+                    alt={video.title}
+                    sx={{ width: 50, height: 50, mr: 2 }}
+                  />
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography variant="body2" noWrap>
+                      {video.title}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {video.channelTitle}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))
+            ) : (
+              <Typography variant="body2" sx={{ p: 2, textAlign: "center" }}>
+                재생 기록이 없습니다
+              </Typography>
+            )}
+          </Paper>
+        </Box>
+      </Box>
+    );
+  };
+
   // 계정 데이터 초기화 함수
   const handleClearUserData = () => {
     if (!user) return;
@@ -1383,6 +1631,19 @@ function App() {
   const isMobile =
     useMediaQuery("(max-width:600px)") ||
     (typeof window !== "undefined" && window.innerWidth < 600);
+
+  // 반복 모드 변경
+  const handleToggleRepeatMode = () => {
+    setRepeatMode((prev) => {
+      const newMode = prev === "none" ? "all" : prev === "all" ? "one" : "none";
+      return newMode;
+    });
+  };
+
+  // 셔플 모드 변경
+  const handleToggleShuffle = () => {
+    setIsShuffle(!isShuffle);
+  };
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -1531,6 +1792,7 @@ function App() {
                   <Tab icon={<HistoryIcon />} label="기록" />
                   <Tab icon={<LibraryMusic />} label="플레이리스트" />
                   <Tab icon={<DownloadIcon />} label="저장됨" />
+                  <Tab icon={<MusicNoteIcon />} label="재생 중" />
                 </Tabs>
 
                 <Box sx={{ p: 3 }}>
@@ -1538,6 +1800,7 @@ function App() {
                   {mainTabValue === 1 && renderHistoryTab()}
                   {mainTabValue === 2 && renderPlaylistsTab()}
                   {mainTabValue === 3 && renderDownloadsTab()}
+                  {mainTabValue === 4 && renderNowPlayingTab()}
                 </Box>
               </Paper>
             )}
@@ -1550,6 +1813,7 @@ function App() {
                   {mainTabValue === 1 && renderHistoryTab()}
                   {mainTabValue === 2 && renderPlaylistsTab()}
                   {mainTabValue === 3 && renderDownloadsTab()}
+                  {mainTabValue === 4 && renderNowPlayingTab()}
                 </Box>
 
                 <Paper elevation={3} className="mobile-bottom-tabs">
@@ -1569,6 +1833,19 @@ function App() {
                       aria-label="플레이리스트"
                     />
                     <Tab icon={<DownloadIcon />} label="" aria-label="저장됨" />
+                    <Tab
+                      icon={<MusicNoteIcon />}
+                      label=""
+                      aria-label="재생 중"
+                      sx={
+                        currentVideo
+                          ? {
+                              color: "primary.main",
+                              animation: "pulse 1.5s infinite",
+                            }
+                          : {}
+                      }
+                    />
                   </Tabs>
                 </Paper>
               </>
@@ -1670,7 +1947,7 @@ function App() {
             hasNextTrack={hasNextTrack}
             hasPreviousTrack={hasPreviousTrack}
             repeatMode={repeatMode}
-            onRepeatModeChange={setRepeatMode}
+            onRepeatModeChange={handleToggleRepeatMode}
             shuffleEnabled={shuffleEnabled}
             onShuffleChange={handleShuffleChange}
             isMobile={isMobile}
