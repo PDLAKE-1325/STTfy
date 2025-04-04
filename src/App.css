@@ -198,9 +198,9 @@ body {
 
   /* 모바일 동영상 리스트 최적화 */
   .mobile-content .album-art {
-    width: calc(50% - 8px) !important;
-    margin: 4px !important;
-    max-width: 200px;
+    width: calc(100% - 16px) !important; /* 한 행에 하나만 표시 */
+    margin: 8px !important;
+    max-width: none;
   }
 
   .mobile-content .album-art img {
@@ -219,8 +219,8 @@ body {
 
   /* 모바일에서 이미지 크기 조정 */
   .mobile-content [style*="width: 200px"] {
-    width: calc(50% - 8px) !important;
-    margin: 4px !important;
+    width: calc(100% - 16px) !important;
+    margin: 8px auto !important;
   }
 
   /* 추천 음악, 검색 결과 그리드 중앙 정렬 */
@@ -231,7 +231,21 @@ body {
 
   /* 리스트 항목 최적화 */
   .mobile-content [style*="width: 120px"] {
-    width: 80px !important;
+    width: 100px !important;
+  }
+
+  /* 재생 중인 음악 탭 스타일 */
+  .now-playing-tab {
+    padding: 12px !important;
+  }
+
+  .now-playing-cover {
+    width: 100% !important;
+    max-width: 300px !important;
+    margin: 0 auto 16px auto !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
   }
 
   /* YouTube 플레이어가 모바일에서 제대로 동작하도록 */
