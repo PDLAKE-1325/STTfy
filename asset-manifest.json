@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/STTfy/static/css/main.907df2ad.css",
+    "main.js": "/STTfy/static/js/main.1cd81d7b.js",
+    "static/js/453.52c66365.chunk.js": "/STTfy/static/js/453.52c66365.chunk.js",
+    "index.html": "/STTfy/index.html",
+    "main.907df2ad.css.map": "/STTfy/static/css/main.907df2ad.css.map",
+    "main.1cd81d7b.js.map": "/STTfy/static/js/main.1cd81d7b.js.map",
+    "453.52c66365.chunk.js.map": "/STTfy/static/js/453.52c66365.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.907df2ad.css",
+    "static/js/main.1cd81d7b.js"
+  ]
+}
