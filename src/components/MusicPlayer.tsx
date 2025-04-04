@@ -41,6 +41,7 @@ interface MusicPlayerProps {
   onRepeatModeChange?: (mode: "none" | "one" | "all") => void; // 반복 재생 모드 변경 콜백
   shuffleEnabled?: boolean; // 셔플 활성화 여부
   onShuffleChange?: (enabled: boolean) => void; // 셔플 상태 변경 콜백
+  isMobile?: boolean; // 모바일 디바이스 여부
 }
 
 const MusicPlayer: React.FC<MusicPlayerProps> = ({
@@ -58,6 +59,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   onRepeatModeChange,
   shuffleEnabled = false,
   onShuffleChange,
+  isMobile = false,
 }) => {
   const [player, setPlayer] = useState<YouTubePlayer | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -277,322 +279,274 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   // 셔플 버튼 활성화 여부 판단
   const isShuffleDisabled = !isPlayingPlaylist;
 
+  // 모바일 화면에 맞는 YouTube 플레이어 옵션
+  const youtubeOpts = {
+    height: "0",
+    width: "0",
+    playerVars: {
+      autoplay: 1,
+      controls: 0,
+      disablekb: 1,
+      fs: 0,
+      iv_load_policy: 3,
+      modestbranding: 1,
+    },
+  };
+
   return (
-    <Card
-      sx={{
-        width: "100%",
-        position: "fixed",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-      }}
-    >
-      {currentVideo ? (
-        <>
-          <Box
-            sx={{
-              display: { xs: "none", md: "block" },
-              height: 0,
-              overflow: "hidden",
-            }}
-          >
-            <YouTube
-              videoId={currentVideo.id}
-              opts={{
-                height: "0",
-                width: "0",
-                playerVars: {
-                  autoplay: 1,
-                  controls: 0,
-                  disablekb: 1,
-                  fs: 0,
-                  rel: 0,
-                  modestbranding: 1,
-                  origin: window.location.origin,
-                },
-              }}
-              onReady={handleReady}
-              onStateChange={handleStateChange}
-              className="youtube-player"
-            />
-          </Box>
-
-          <Box sx={{ p: 2, bgcolor: "background.paper" }}>
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  width: "30%",
-                  minWidth: 200,
-                }}
-              >
-                <CardMedia
-                  component="img"
-                  sx={{ width: 60, height: 60, borderRadius: 1, mr: 2 }}
-                  image={currentVideo.thumbnail}
-                  alt={currentVideo.title}
-                />
-                <Box>
-                  <Typography
-                    variant="subtitle1"
-                    noWrap
-                    sx={{ maxWidth: "100%" }}
-                  >
-                    {currentVideo.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {currentVideo.channelTitle}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flex: 1,
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    mb: 1,
-                  }}
-                >
-                  <Tooltip
-                    title={isPreviousDisabled ? "이전 곡 없음" : "이전 곡"}
-                  >
-                    <span>
-                      <IconButton
-                        color="inherit"
-                        size="small"
-                        onClick={onPrevious}
-                        disabled={isPreviousDisabled}
-                      >
-                        <SkipPrevious />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-
-                  <IconButton
-                    color="primary"
-                    onClick={togglePlayPause}
-                    sx={{
-                      mx: 1,
-                      bgcolor: "primary.main",
-                      color: "white",
-                      "&:hover": { bgcolor: "primary.dark" },
-                      height: 48,
-                      width: 48,
-                    }}
-                  >
-                    {isPlaying ? <Pause /> : <PlayArrow />}
-                  </IconButton>
-
-                  <Tooltip title={isNextDisabled ? "다음 곡 없음" : "다음 곡"}>
-                    <span>
-                      <IconButton
-                        color="inherit"
-                        size="small"
-                        onClick={onNext}
-                        disabled={isNextDisabled}
-                      >
-                        <SkipNext />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-
-                  <Tooltip
-                    title={
-                      repeatMode === "none"
-                        ? "반복 재생 꺼짐"
-                        : repeatMode === "all"
-                        ? "전체 반복 재생"
-                        : "한 곡 반복 재생"
-                    }
-                  >
-                    <IconButton
-                      color="inherit"
-                      size="small"
-                      onClick={toggleRepeatMode}
-                      sx={{
-                        ml: 1,
-                        color:
-                          repeatMode !== "none"
-                            ? theme.palette.primary.main
-                            : "inherit",
-                      }}
-                    >
-                      {repeatMode === "one" ? <RepeatOne /> : <Repeat />}
-                    </IconButton>
-                  </Tooltip>
-
-                  <Tooltip
-                    title={
-                      isShuffleDisabled
-                        ? "플레이리스트에서만 사용 가능"
-                        : shuffleEnabled
-                        ? "셔플 켜짐"
-                        : "셔플 꺼짐"
-                    }
-                  >
-                    <span>
-                      <IconButton
-                        color="inherit"
-                        size="small"
-                        onClick={toggleShuffle}
-                        disabled={isShuffleDisabled}
-                        sx={{
-                          color:
-                            shuffleEnabled && !isShuffleDisabled
-                              ? theme.palette.primary.main
-                              : "inherit",
-                          opacity: isShuffleDisabled ? 0.5 : 1,
-                        }}
-                      >
-                        <Shuffle />
-                      </IconButton>
-                    </span>
-                  </Tooltip>
-                </Box>
-
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    width: "100%",
-                    maxWidth: 800,
-                    mx: "auto",
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{ mr: 1, minWidth: 40, textAlign: "right" }}
-                  >
-                    {formatTime(currentTime)}
-                  </Typography>
-                  <Slider
-                    value={currentTime}
-                    min={0}
-                    max={duration || 100}
-                    onChange={handleProgressChange}
-                    aria-labelledby="time-slider"
-                    sx={{
-                      color: "primary.main",
-                      height: 4,
-                      "& .MuiSlider-thumb": {
-                        width: 8,
-                        height: 8,
-                        transition: "0.3s cubic-bezier(.47,1.64,.41,.8)",
-                        "&:hover, &.Mui-focusVisible": {
-                          boxShadow: `0px 0px 0px 8px ${theme.palette.primary.main}33`,
-                        },
-                        "&:before": {
-                          boxShadow: "0 2px 12px 0 rgba(0,0,0,0.4)",
-                        },
-                      },
-                      "& .MuiSlider-rail": {
-                        opacity: 0.28,
-                      },
-                    }}
-                  />
-                  <Typography variant="caption" sx={{ ml: 1, minWidth: 40 }}>
-                    {formatTime(duration)}
-                  </Typography>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  width: "20%",
-                  justifyContent: "flex-end",
-                }}
-              >
-                <IconButton
-                  color="inherit"
-                  onClick={handleVolumeClick}
-                  aria-describedby={volumePopoverId}
-                >
-                  {isMuted || volume === 0 ? <VolumeOff /> : <VolumeUp />}
-                </IconButton>
-
-                <Popover
-                  id={volumePopoverId}
-                  open={open}
-                  anchorEl={anchorEl}
-                  onClose={handleVolumeClose}
-                  anchorOrigin={{
-                    vertical: "top",
-                    horizontal: "center",
-                  }}
-                  transformOrigin={{
-                    vertical: "bottom",
-                    horizontal: "center",
-                  }}
-                  sx={{ overflow: "hidden" }}
-                >
-                  <Box
-                    sx={{
-                      height: 120,
-                      width: 40,
-                      p: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <Slider
-                      value={volume}
-                      min={0}
-                      max={100}
-                      onChange={handleVolumeChange}
-                      orientation="vertical"
-                      aria-labelledby="volume-slider"
-                      className="volume-slider"
-                      sx={{
-                        color: "primary.main",
-                        height: "90%",
-                        "& .MuiSlider-rail": {
-                          backgroundColor: theme.palette.grey[400],
-                        },
-                      }}
-                    />
-                  </Box>
-                </Popover>
-
-                <IconButton color="inherit" onClick={onToggleQueue}>
-                  <QueueMusic />
-                </IconButton>
-              </Box>
-            </Stack>
-          </Box>
-        </>
-      ) : (
-        <Box sx={{ p: 3, textAlign: "center" }}>
-          <Typography variant="subtitle1">음악을 선택해주세요</Typography>
-          <Typography variant="body2" color="text.secondary">
-            검색하거나 추천 음악을 선택하여 재생할 수 있습니다
-          </Typography>
-        </Box>
-      )}
-
+    <>
+      {/* Audio 요소 - 실제 소리 출력 (YouTube API와 동기화) */}
       <audio
         ref={audioRef}
-        src={currentVideo?.audioUrl}
         onTimeUpdate={updateTime}
         onLoadedMetadata={loadMetadata}
         onEnded={onEnded}
       />
-    </Card>
+
+      {/* YouTube 컴포넌트 (눈에 보이지 않음, 백그라운드에서 동작) */}
+      <div style={{ position: "fixed", top: -9999, left: -9999 }}>
+        {currentVideo && (
+          <YouTube
+            videoId={currentVideo.id}
+            opts={youtubeOpts}
+            onReady={handleReady}
+            onStateChange={handleStateChange}
+            className="youtube-player"
+          />
+        )}
+      </div>
+
+      {/* 플레이어 UI */}
+      {currentVideo && (
+        <Card
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            borderRadius: isMobile ? 0 : "8px 8px 0 0",
+            boxShadow: 3,
+            bgcolor: "background.paper",
+          }}
+        >
+          {/* Progress Bar */}
+          <Box
+            sx={{ px: isMobile ? 0.5 : 2, pt: isMobile ? 0.5 : 1 }}
+            className={isMobile ? "mobile-player-slider" : ""}
+          >
+            <Slider
+              value={currentTime}
+              max={duration}
+              onChange={handleProgressChange}
+              aria-label="progress"
+              size="small"
+              sx={{ my: 0, py: 0, color: "#00BFFF" }}
+              className={`slider-progress ${isPlaying ? "active" : ""}`}
+            />
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                className={isMobile ? "mobile-player-time" : ""}
+              >
+                {formatTime(currentTime)}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                className={isMobile ? "mobile-player-time" : ""}
+              >
+                {formatTime(duration)}
+              </Typography>
+            </Stack>
+          </Box>
+
+          {/* Controls */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              px: isMobile ? 1 : 2,
+              py: isMobile ? 0.5 : 1,
+            }}
+            className={isMobile ? "mobile-player-controls" : ""}
+          >
+            {/* Song Info */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                width: isMobile ? "40%" : "30%",
+                overflow: "hidden",
+              }}
+            >
+              <CardMedia
+                component="img"
+                sx={{
+                  width: isMobile ? 40 : 50,
+                  height: isMobile ? 40 : 50,
+                  borderRadius: 1,
+                  mr: 1,
+                }}
+                image={currentVideo.thumbnail}
+                alt={currentVideo.title}
+              />
+              <Box sx={{ overflow: "hidden" }}>
+                <Tooltip title={currentVideo.title}>
+                  <Typography
+                    variant={isMobile ? "body2" : "body1"}
+                    noWrap
+                    fontWeight="medium"
+                  >
+                    {currentVideo.title}
+                  </Typography>
+                </Tooltip>
+                <Typography
+                  variant={isMobile ? "caption" : "body2"}
+                  color="text.secondary"
+                  noWrap
+                >
+                  {currentVideo.channelTitle}
+                </Typography>
+              </Box>
+            </Box>
+
+            {/* Playback Controls */}
+            <Stack
+              direction="row"
+              spacing={isMobile ? 0.5 : 1}
+              alignItems="center"
+              className={isMobile ? "mobile-control-buttons" : ""}
+            >
+              <IconButton
+                onClick={() =>
+                  onRepeatModeChange &&
+                  onRepeatModeChange(
+                    repeatMode === "none"
+                      ? "all"
+                      : repeatMode === "all"
+                      ? "one"
+                      : "none"
+                  )
+                }
+                color={repeatMode !== "none" ? "primary" : "default"}
+                size={isMobile ? "small" : "medium"}
+              >
+                {repeatMode === "one" ? <RepeatOne /> : <Repeat />}
+              </IconButton>
+
+              <IconButton
+                onClick={onPrevious}
+                disabled={!hasPreviousTrack && playbackHistory.length === 0}
+                size={isMobile ? "small" : "medium"}
+              >
+                <SkipPrevious />
+              </IconButton>
+
+              <IconButton
+                onClick={togglePlayPause}
+                size={isMobile ? "medium" : "large"}
+                sx={{
+                  bgcolor: "primary.main",
+                  color: "white",
+                  "&:hover": { bgcolor: "primary.dark" },
+                  width: isMobile ? 40 : 48,
+                  height: isMobile ? 40 : 48,
+                }}
+              >
+                {isPlaying ? <Pause /> : <PlayArrow />}
+              </IconButton>
+
+              <IconButton
+                onClick={onNext}
+                disabled={queue.length === 0 && !hasNextTrack}
+                size={isMobile ? "small" : "medium"}
+              >
+                <SkipNext />
+              </IconButton>
+
+              <IconButton
+                onClick={() =>
+                  onShuffleChange && onShuffleChange(!shuffleEnabled)
+                }
+                color={shuffleEnabled ? "primary" : "default"}
+                size={isMobile ? "small" : "medium"}
+              >
+                <Shuffle />
+              </IconButton>
+            </Stack>
+
+            {/* Volume and Queue Controls */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                width: isMobile ? "40%" : "30%",
+              }}
+            >
+              {!isMobile && (
+                <IconButton onClick={handleVolumeClick} size="small">
+                  {isMuted || volume === 0 ? <VolumeOff /> : <VolumeUp />}
+                </IconButton>
+              )}
+
+              <IconButton
+                onClick={onToggleQueue}
+                color="primary"
+                size={isMobile ? "small" : "medium"}
+              >
+                <QueueMusic />
+              </IconButton>
+
+              {!isMobile && (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ ml: 1, minWidth: 50 }}
+                >
+                  {queue.length > 0 && `+${queue.length}`}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {/* Volume Popover */}
+          <Popover
+            open={Boolean(anchorEl)}
+            anchorEl={anchorEl}
+            onClose={handleVolumeClose}
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "center",
+            }}
+            transformOrigin={{
+              vertical: "bottom",
+              horizontal: "center",
+            }}
+          >
+            <Box sx={{ p: 2, height: 150, width: 50 }}>
+              <Slider
+                orientation="vertical"
+                value={volume}
+                onChange={handleVolumeChange}
+                aria-label="Volume"
+                min={0}
+                max={100}
+                sx={{ color: "#00BFFF", height: "100%" }}
+                className="volume-slider"
+              />
+            </Box>
+          </Popover>
+        </Card>
+      )}
+    </>
   );
 };
 

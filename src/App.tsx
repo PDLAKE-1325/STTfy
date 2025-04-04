@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  useMediaQuery,
 } from "@mui/material";
 import { HashRouter as Router } from "react-router-dom";
 import {
@@ -1274,55 +1275,107 @@ function App() {
     showSnackbar("계정 데이터가 초기화되었습니다.", "success");
   };
 
+  // 모바일 화면 감지
+  const isMobile = useMediaQuery("(max-width:600px)");
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <InstallPWA />
       <Router>
         <Box
-          sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-          className="dark-theme"
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "100vh",
+            bgcolor: "background.default",
+            color: "text.primary",
+          }}
         >
-          <AppBar position="static" color="secondary">
-            <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                ST Music
+          <AppBar
+            position="sticky"
+            color="secondary"
+            className={isMobile ? "mobile-app-bar" : ""}
+          >
+            <Toolbar
+              sx={{ justifyContent: "space-between" }}
+              className={isMobile ? "mobile-toolbar" : ""}
+            >
+              <Typography
+                variant={isMobile ? "h6" : "h5"}
+                sx={{
+                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                STAfy
+                {isOffline && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      ml: 1,
+                      bgcolor: "error.main",
+                      color: "white",
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      fontSize: isMobile ? "8px" : "10px",
+                    }}
+                  >
+                    오프라인
+                  </Typography>
+                )}
               </Typography>
-              {currentVideo && (
-                <IconButton
-                  color="inherit"
-                  onClick={toggleAddToPlaylistDialog}
-                  disabled={!user}
-                  title={!user ? "로그인이 필요합니다" : "플레이리스트에 추가"}
-                >
-                  <AddIcon />
+              <Box sx={{ display: "flex", alignItems: "center" }}>
+                <InstallPWA />
+                {queue.length > 0 && (
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mr: 1, display: isMobile ? "none" : "block" }}
+                  >
+                    대기열: {queue.length}
+                  </Typography>
+                )}
+                <IconButton color="inherit" onClick={toggleQueue}>
+                  <QueueMusic />
                 </IconButton>
-              )}
-              <IconButton color="inherit" onClick={toggleQueue}>
-                <QueueMusic />
-              </IconButton>
-              {user ? (
-                <Box sx={{ display: "flex", alignItems: "center" }}>
-                  <Avatar
-                    src={user.photoURL}
-                    alt={user.displayName}
-                    sx={{ width: 32, height: 32, cursor: "pointer", ml: 1 }}
-                    onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
-                  />
-                </Box>
-              ) : (
-                <Button
-                  color="inherit"
-                  onClick={() => setIsLoginDialogOpen(true)}
-                >
-                  로그인
-                </Button>
-              )}
+                {user ? (
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <Avatar
+                      src={user.photoURL}
+                      alt={user.displayName}
+                      sx={{
+                        width: isMobile ? 28 : 32,
+                        height: isMobile ? 28 : 32,
+                        cursor: "pointer",
+                        ml: 1,
+                      }}
+                      onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
+                    />
+                  </Box>
+                ) : (
+                  <Button
+                    color="inherit"
+                    onClick={() => setIsLoginDialogOpen(true)}
+                    size={isMobile ? "small" : "medium"}
+                  >
+                    로그인
+                  </Button>
+                )}
+              </Box>
             </Toolbar>
           </AppBar>
 
-          <Container maxWidth="lg" sx={{ mt: 2, mb: 10, flexGrow: 1 }}>
-            <Paper sx={{ mb: 2, p: 2 }}>
+          <Container
+            maxWidth="lg"
+            sx={{ mt: isMobile ? 1 : 2, mb: isMobile ? 8 : 10, flexGrow: 1 }}
+            className={isMobile ? "mobile-content" : ""}
+          >
+            <Paper
+              sx={{ mb: isMobile ? 1 : 2, p: isMobile ? 1 : 2 }}
+              className={isMobile ? "mobile-card" : ""}
+            >
               <TextField
                 fullWidth
                 placeholder="음악 검색..."
@@ -1345,31 +1398,54 @@ function App() {
                       <IconButton
                         onClick={() => handleSearch(searchQuery)}
                         edge="end"
+                        size={isMobile ? "small" : "medium"}
                       >
                         <SearchIcon />
                       </IconButton>
                     </InputAdornment>
                   ),
                 }}
-                size="small"
+                size={isMobile ? "small" : "medium"}
+                className={isMobile ? "mobile-search-field" : ""}
               />
             </Paper>
 
-            <Paper elevation={3} sx={{ mb: 3 }}>
+            <Paper
+              elevation={3}
+              sx={{ mb: isMobile ? 2 : 3 }}
+              className={isMobile ? "mobile-card" : ""}
+            >
               <Tabs
                 value={mainTabValue}
                 onChange={handleMainTabChange}
                 variant="fullWidth"
                 indicatorColor="primary"
                 textColor="primary"
+                className={isMobile ? "mobile-tabs" : ""}
               >
-                <Tab icon={<HomeIcon />} label="홈" />
-                <Tab icon={<HistoryIcon />} label="기록" />
-                <Tab icon={<LibraryMusic />} label="플레이리스트" />
-                <Tab icon={<DownloadIcon />} label="저장됨" />
+                <Tab
+                  icon={<HomeIcon />}
+                  label={isMobile ? "" : "홈"}
+                  aria-label="홈"
+                />
+                <Tab
+                  icon={<HistoryIcon />}
+                  label={isMobile ? "" : "기록"}
+                  aria-label="기록"
+                />
+                <Tab
+                  icon={<LibraryMusic />}
+                  label={isMobile ? "" : "플레이리스트"}
+                  aria-label="플레이리스트"
+                />
+                <Tab
+                  icon={<DownloadIcon />}
+                  label={isMobile ? "" : "저장됨"}
+                  aria-label="저장됨"
+                />
               </Tabs>
 
-              <Box sx={{ p: 3 }}>
+              <Box sx={{ p: isMobile ? 1.5 : 3 }}>
                 {mainTabValue === 0 && renderHomeTab()}
                 {mainTabValue === 1 && renderHistoryTab()}
                 {mainTabValue === 2 && renderPlaylistsTab()}
@@ -1383,8 +1459,12 @@ function App() {
             open={isQueueOpen}
             onClose={toggleQueue}
             PaperProps={{
-              sx: { width: "320px", bgcolor: "background.paper" },
+              sx: {
+                width: isMobile ? "85vw" : "320px",
+                bgcolor: "background.paper",
+              },
             }}
+            className={isMobile ? "mobile-drawer" : ""}
           >
             <Queue
               queue={queue}
@@ -1472,6 +1552,7 @@ function App() {
             onRepeatModeChange={setRepeatMode}
             shuffleEnabled={shuffleEnabled}
             onShuffleChange={handleShuffleChange}
+            isMobile={isMobile}
           />
 
           {isOffline && (

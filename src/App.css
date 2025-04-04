@@ -77,6 +77,78 @@ body {
   .player-controls {
     flex-direction: column;
   }
+
+  /* 모바일 화면에서 플레이어 컨트롤 최적화 */
+  .mobile-player-controls {
+    padding: 8px 4px !important;
+  }
+
+  .mobile-player-time {
+    font-size: 12px !important;
+  }
+
+  .mobile-control-buttons button {
+    padding: 6px !important;
+  }
+
+  .mobile-player-slider {
+    margin: 0 !important;
+    padding: 0 4px !important;
+  }
+
+  /* 모바일 탭 최적화 */
+  .mobile-tabs .MuiTab-root {
+    min-width: auto !important;
+    padding: 6px 8px !important;
+  }
+
+  .mobile-tabs .MuiTab-root .MuiTab-iconWrapper {
+    margin-bottom: 0 !important;
+  }
+
+  .mobile-tabs .MuiTab-root .MuiTab-labelIcon {
+    font-size: 11px !important;
+  }
+
+  /* 모바일 그리드 최적화 */
+  .mobile-grid-item {
+    padding: 6px !important;
+  }
+
+  /* 모바일 헤더 최적화 */
+  .mobile-app-bar {
+    padding: 0 8px !important;
+  }
+
+  .mobile-app-bar .MuiToolbar-root {
+    min-height: 56px !important;
+    padding: 0 4px !important;
+  }
+
+  /* 모바일 드로어 최적화 */
+  .mobile-drawer {
+    width: 85vw !important;
+  }
+
+  /* 모바일 검색창 최적화 */
+  .mobile-search-field {
+    font-size: 14px !important;
+  }
+
+  .mobile-search-field .MuiInputBase-input {
+    padding: 8px 12px !important;
+  }
+
+  /* 모바일 카드 최적화 */
+  .mobile-card {
+    margin-bottom: 8px !important;
+  }
+
+  /* 모바일에서 불필요한 여백 제거 */
+  .mobile-content {
+    margin: 8px 0 !important;
+    padding: 8px !important;
+  }
 }
 
 .App {

@@ -9,6 +9,7 @@ import {
   Typography,
   Box,
   Divider,
+  useMediaQuery,
 } from "@mui/material";
 import { Delete, PlayArrow } from "@mui/icons-material";
 import { Video } from "../types";
@@ -26,6 +27,9 @@ const Queue: React.FC<QueueProps> = ({
   onSelect,
   onRemove,
 }) => {
+  // 모바일 화면 감지
+  const isMobile = useMediaQuery("(max-width:600px)");
+
   if (queue.length === 0) {
     return (
       <Box sx={{ p: 3, textAlign: "center" }}>
@@ -38,8 +42,8 @@ const Queue: React.FC<QueueProps> = ({
 
   return (
     <List sx={{ width: "100%", maxHeight: "400px", overflow: "auto" }}>
-      <Typography variant="subtitle1" sx={{ p: 2 }}>
-        Queue - {queue.length} songs
+      <Typography variant="subtitle1" sx={{ p: isMobile ? 1 : 2 }}>
+        대기열 - {queue.length}곡
       </Typography>
       <Divider />
 
@@ -49,6 +53,7 @@ const Queue: React.FC<QueueProps> = ({
             sx={{
               bgcolor: "rgba(29, 185, 84, 0.1)",
               borderLeft: "4px solid #1DB954",
+              py: isMobile ? 1 : 2,
             }}
           >
             <ListItemAvatar>
@@ -56,17 +61,24 @@ const Queue: React.FC<QueueProps> = ({
                 variant="rounded"
                 src={currentVideo.thumbnail}
                 alt={currentVideo.title}
-                sx={{ width: 50, height: 50 }}
+                sx={{ width: isMobile ? 40 : 50, height: isMobile ? 40 : 50 }}
               />
             </ListItemAvatar>
             <ListItemText
               primary={
-                <Typography variant="body1" fontWeight="medium">
-                  Now Playing
+                <Typography
+                  variant={isMobile ? "body2" : "body1"}
+                  fontWeight="medium"
+                >
+                  재생 중
                 </Typography>
               }
               secondary={
-                <Typography variant="body2" noWrap sx={{ maxWidth: "200px" }}>
+                <Typography
+                  variant={isMobile ? "caption" : "body2"}
+                  noWrap
+                  sx={{ maxWidth: isMobile ? "120px" : "200px" }}
+                >
                   {currentVideo.title}
                 </Typography>
               }
@@ -82,11 +94,16 @@ const Queue: React.FC<QueueProps> = ({
           <ListItem
             key={video.id}
             secondaryAction={
-              <IconButton edge="end" onClick={() => onRemove(video.id)}>
-                <Delete fontSize="small" />
+              <IconButton
+                edge="end"
+                onClick={() => onRemove(video.id)}
+                size={isMobile ? "small" : "medium"}
+              >
+                <Delete fontSize={isMobile ? "small" : "medium"} />
               </IconButton>
             }
             sx={{
+              py: isMobile ? 0.75 : 1.5,
               "&:hover": {
                 bgcolor: "rgba(255, 255, 255, 0.05)",
               },
@@ -95,26 +112,36 @@ const Queue: React.FC<QueueProps> = ({
             <IconButton
               edge="start"
               onClick={() => onSelect(video)}
-              sx={{ mr: 1 }}
+              sx={{ mr: isMobile ? 0.5 : 1 }}
+              size={isMobile ? "small" : "medium"}
             >
-              <PlayArrow fontSize="small" />
+              <PlayArrow fontSize={isMobile ? "small" : "medium"} />
             </IconButton>
             <ListItemAvatar>
               <Avatar
                 variant="rounded"
                 src={video.thumbnail}
                 alt={video.title}
-                sx={{ width: 40, height: 40 }}
+                sx={{ width: isMobile ? 32 : 40, height: isMobile ? 32 : 40 }}
               />
             </ListItemAvatar>
             <ListItemText
               primary={
-                <Typography variant="body2" noWrap sx={{ maxWidth: "200px" }}>
+                <Typography
+                  variant={isMobile ? "caption" : "body2"}
+                  noWrap
+                  sx={{ maxWidth: isMobile ? "120px" : "200px" }}
+                >
                   {video.title}
                 </Typography>
               }
               secondary={
-                <Typography variant="caption" color="text.secondary" noWrap>
+                <Typography
+                  variant={isMobile ? "caption" : "body2"}
+                  color="text.secondary"
+                  noWrap
+                  sx={{ fontSize: isMobile ? "10px" : "inherit" }}
+                >
                   {video.channelTitle}
                 </Typography>
               }
