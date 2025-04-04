@@ -274,7 +274,7 @@ function App() {
       return prevQueue;
     });
     addToHistoryWithoutDuplicates(video);
-    setMainTabValue(4); // 재생 시 자동으로 '재생 중' 탭으로 이동
+    setMainTabValue(3); // 재생 시 자동으로 '재생 중' 탭으로 이동
   };
 
   // 음악이 저장되었는지 확인하는 함수
@@ -498,6 +498,18 @@ function App() {
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     if (newValue > 4) return; // 5개의 탭만 존재
+
+    // 탭 1(기록), 탭 2(플레이리스트)는 로그인 필요
+    if ((newValue === 1 || newValue === 2) && !user) {
+      setLoginRequiredMessage(
+        `${
+          newValue === 1 ? "기록" : "플레이리스트"
+        }을(를) 이용하려면 로그인이 필요합니다.`
+      );
+      setIsLoginRequiredOpen(true);
+      return;
+    }
+
     setMainTabValue(newValue);
   };
 
@@ -625,6 +637,18 @@ function App() {
     newValue: number
   ) => {
     if (newValue > 4) return; // 5개의 탭만 존재
+
+    // 탭 1(기록), 탭 2(플레이리스트)는 로그인 필요
+    if ((newValue === 1 || newValue === 2) && !user) {
+      setLoginRequiredMessage(
+        `${
+          newValue === 1 ? "기록" : "플레이리스트"
+        }을(를) 이용하려면 로그인이 필요합니다.`
+      );
+      setIsLoginRequiredOpen(true);
+      return;
+    }
+
     setMainTabValue(newValue);
   };
 
@@ -878,6 +902,24 @@ function App() {
   };
 
   const renderHistoryTab = () => {
+    // 로그인 체크
+    if (!user) {
+      return (
+        <Box sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+            시청 기록을 이용하려면 로그인이 필요합니다.
+          </Typography>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => setIsLoginDialogOpen(true)}
+          >
+            로그인
+          </Button>
+        </Box>
+      );
+    }
+
     if (history.length === 0) {
       return (
         <Box
@@ -1646,7 +1688,7 @@ function App() {
             shuffleEnabled={shuffleEnabled}
             onShuffleChange={handleShuffleChange}
             isMobile={isMobile}
-            onNavigateToNowPlaying={() => setMainTabValue(1)}
+            onNavigateToNowPlaying={() => setMainTabValue(3)}
           />
 
           {isOffline && (
