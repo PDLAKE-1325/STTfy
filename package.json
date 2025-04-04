@@ -2,7 +2,7 @@
   "name": "youtube-music-player",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://a1.github.io/STTfy",
+  "homepage": "https://pdlake-1325.github.io/STTfy",
   "proxy": "http://localhost:5000",
   "dependencies": {
     "@emotion/react": "^11.14.0",
