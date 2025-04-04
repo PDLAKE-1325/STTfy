@@ -89,11 +89,12 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     playerVars: {
       autoplay: 1,
       controls: 0,
-      mute: 1, // 모바일에서 자동 재생을 위해 초기에 음소거
+      mute: 0, // 음소거 해제
       disablekb: 1,
       fs: 0,
       modestbranding: 1,
       rel: 0,
+      playsinline: 1, // 모바일에서 필요
     },
   };
 
@@ -102,14 +103,18 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     playerRef.current = event.target;
     setPlayerReady(true);
 
-    // 볼륨 설정
-    playerRef.current.setVolume(volume);
-    playerRef.current.unMute();
-    setIsMuted(false);
+    // 볼륨 설정 및 즉시 재생
+    if (playerRef.current) {
+      playerRef.current.setVolume(volume);
 
-    // 재생 시작
-    playerRef.current.playVideo();
-    startProgressTracking();
+      // 음소거 해제 및 재생 시작
+      playerRef.current.unMute();
+      setIsMuted(false);
+      playerRef.current.playVideo();
+
+      // 진행 상태 추적 시작
+      startProgressTracking();
+    }
   };
 
   // 플레이어 상태 변경 핸들러
@@ -252,9 +257,12 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   // 현재 비디오가 변경되면 플레이어 업데이트
   useEffect(() => {
     setCurrentTime(0);
-    setIsPlaying(false);
 
-    if (!currentVideo) {
+    // 새 비디오가 설정되면 재생 상태를 true로 설정
+    if (currentVideo) {
+      setIsPlaying(true);
+    } else {
+      setIsPlaying(false);
       stopProgressTracking();
     }
   }, [currentVideo]);

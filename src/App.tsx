@@ -407,12 +407,9 @@ function App() {
     saveToHistory(video);
     showSnackbar(`'${video.title.substring(0, 30)}...' 재생 시작`, "success");
 
-    // 음악 재생 탭으로 이동
+    // 음악 재생 탭으로 즉시 이동
     setShouldShowPlayer(true);
-    // setTimeout을 통해 탭 변경 처리 (UI 업데이트 시간을 위한 약간의 지연)
-    setTimeout(() => {
-      setMainTabValue(4); // 새로운 음악 탭 인덱스
-    }, 100);
+    setMainTabValue(4); // 새로운 음악 탭 인덱스
   };
 
   // 이전 곡 재생 처리
