@@ -29,6 +29,10 @@ import {
   useMediaQuery,
   Stack,
   SwipeableDrawer,
+  BottomNavigation,
+  BottomNavigationAction,
+  useTheme,
+  Link,
 } from "@mui/material";
 import { HashRouter as Router } from "react-router-dom";
 import {
@@ -37,7 +41,6 @@ import {
   LibraryMusic,
   Add as AddIcon,
   Search as SearchIcon,
-  Download as DownloadIcon,
   Home as HomeIcon,
   Delete as DeleteIcon,
   MusicNote as MusicNoteIcon,
@@ -48,6 +51,10 @@ import {
   Pause,
   SkipNext,
   Shuffle,
+  Logout as LogoutIcon,
+  Google as GoogleIcon,
+  GitHub as GitHubIcon,
+  Settings as SettingsIcon,
 } from "@mui/icons-material";
 import { Video, Playlist } from "./types";
 import Search from "./components/Search";
@@ -55,6 +62,7 @@ import MusicPlayer, {
   NowPlayingContent,
   usePlayerState,
   formatTimeHelper,
+  MusicPlayerState,
 } from "./components/MusicPlayer";
 import Queue from "./components/Queue";
 import Playlists from "./components/Playlists";
@@ -90,41 +98,44 @@ const darkTheme = createTheme({
 });
 
 function App() {
+  const [videos, setVideos] = useState<Video[]>([]);
   const [currentVideo, setCurrentVideo] = useState<Video | null>(null);
   const [queue, setQueue] = useState<Video[]>([]);
   const [history, setHistory] = useState<Video[]>([]);
-  const [popularVideos, setPopularVideos] = useState<Video[]>([]);
-  const [trendingVideos, setTrendingVideos] = useState<Video[]>([]);
-  const [recommendedVideos, setRecommendedVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isQueueOpen, setIsQueueOpen] = useState(false);
-  const [mainTabValue, setMainTabValue] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<Video[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [shouldShowPlayer, setShouldShowPlayer] = useState(false);
-
-  // 플레이리스트 관련 상태
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(
     null
   );
+  const [mainTabValue, setMainTabValue] = useState(0);
+  const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isPlaylistsOpen, setIsPlaylistsOpen] = useState(false);
-  const [activePlaylistTab, setActivePlaylistTab] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Video[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false);
-  const [downloadedVideos, setDownloadedVideos] = useState<Video[]>([]);
-  const [snackbar, setSnackbar] = useState<{
+  const [snackbarState, setSnackbarState] = useState<{
     open: boolean;
     message: string;
     severity: "success" | "error" | "warning" | "info";
   }>({
     open: false,
     message: "",
-    severity: "success",
+    severity: "info",
   });
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [isPlayingPlaylist, setIsPlayingPlaylist] = useState(false);
+  const [currentPlaylistId, setCurrentPlaylistId] = useState<string | null>(
+    null
+  );
+  const [repeatMode, setRepeatMode] = useState<"none" | "all" | "one">("none");
+  const [shuffleEnabled, setShuffleEnabled] = useState(false);
+  const [playerStateObj, setPlayerStateObj] = useState<MusicPlayerState | null>(
+    null
+  );
 
-  // 온라인/오프라인 상태 감지
-  const [isOffline, setIsOffline] = useState(false);
+  // 모바일 여부 확인
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const { user, signInWithGoogle, signInWithGithub, logout } = useAuth();
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
@@ -138,51 +149,8 @@ function App() {
   // 재생 기록 스택 (현재 세션에서 들은 곡들의 기록)
   const [playbackStack, setPlaybackStack] = useState<Video[]>([]);
 
-  // 반복 재생 모드 ("none" | "one" | "all")
-  const [repeatMode, setRepeatMode] = useState<"none" | "one" | "all">("none");
-
-  // 셔플 활성화 여부
-  const [shuffleEnabled, setShuffleEnabled] = useState(false);
-
-  // 현재 재생 중인 것이 플레이리스트인지 여부
-  const [isPlayingPlaylist, setIsPlayingPlaylist] = useState(false);
-  // 현재 재생 중인 플레이리스트 인덱스
-  const [currentPlaylistIndex, setCurrentPlaylistIndex] = useState(-1);
-  // 현재 재생 중인 플레이리스트 ID
-  const [currentPlaylistId, setCurrentPlaylistId] = useState<string | null>(
-    null
-  );
-
-  // 현재 재생 중인 저장된 음악 인덱스
-  const [currentDownloadIndex, setCurrentDownloadIndex] = useState(-1);
-
   // 플레이어 상태
-  const [playerStateObj, setPlayerStateObj] = useState({
-    isPlaying: false,
-    currentTime: 0,
-    duration: 0,
-    volume: 70,
-    isMuted: false,
-    videoViews: "",
-    toggleMute: (e: React.MouseEvent) => {},
-    togglePlayPause: (e?: React.MouseEvent) => {},
-    handleVolumeChange: (event: Event, newValue: number | number[]) => {},
-    handleProgressChange: (event: Event, newValue: number | number[]) => {},
-    formatTime: formatTimeHelper,
-    needsUserInteraction: false,
-    attemptUnmute: () => false,
-  });
-
-  // 음악 플레이어 상태 모니터링 콜백
-  const updatePlayerState = useCallback((state: any) => {
-    setPlayerStateObj(state);
-  }, []);
-
-  // usePlayerState 훅 직접 호출
-  usePlayerState(updatePlayerState);
-
-  // 플레이어 참조
-  const playerRef = useRef<YouTubePlayer | null>(null);
+  const [playerRef, setPlayerRef] = useState<YouTubePlayer | null>(null);
 
   // 로그인 필요 기능 확인
   const checkLoginRequired = (feature: string): boolean => {
@@ -212,33 +180,18 @@ function App() {
       // 히스토리 로드
       const savedHistory = localStorage.getItem(`history_${user.uid}`);
       if (savedHistory) {
-        try {
-          // 7일 이내의 기록만 필터링
-          const allHistory = JSON.parse(savedHistory);
-          const filteredHistory = allHistory.filter((video: any) => {
-            const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-            return video.viewedAt && video.viewedAt > sevenDaysAgo;
-          });
-          setHistory(filteredHistory);
-        } catch (error) {
-          console.error("Error parsing saved history:", error);
-        }
-      }
-
-      // 다운로드된 음악 로드
-      const savedDownloads = localStorage.getItem(`downloads_${user.uid}`);
-      if (savedDownloads) {
-        try {
-          setDownloadedVideos(JSON.parse(savedDownloads));
-        } catch (error) {
-          console.error("Error parsing saved downloads:", error);
-        }
+        // 7일 이내의 기록만 필터링
+        const allHistory = JSON.parse(savedHistory);
+        const filteredHistory = allHistory.filter((video: any) => {
+          const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+          return video.viewedAt && video.viewedAt > sevenDaysAgo;
+        });
+        setHistory(filteredHistory);
       }
     } else {
       // 로그인하지 않으면 초기화
       setPlaylists([]);
       setHistory([]);
-      setDownloadedVideos([]);
     }
   }, [user]);
 
@@ -264,33 +217,22 @@ function App() {
     }
   }, [history, user]);
 
-  // 다운로드된 음악 변경 시 로컬 스토리지에 저장
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(
-        `downloads_${user.uid}`,
-        JSON.stringify(downloadedVideos)
-      );
-    }
-  }, [downloadedVideos, user]);
-
   // 인기 음악과 추천 음악 가져오기
   useEffect(() => {
     const fetchVideos = async () => {
       try {
         const popular = await getPopularMusicVideos();
-        setPopularVideos(popular);
+        setVideos(popular);
 
         // 트렌딩 음악으로 사용할 데이터 (실제로는 다른 API 호출이 필요할 수 있음)
-        setTrendingVideos(popular.slice(0, 10));
+        const trendingVideos = popular.slice(0, 10);
 
         // 추천 음악으로 사용할 데이터 (실제로는 다른 API 호출이 필요할 수 있음)
-        setRecommendedVideos([...popular].reverse().slice(0, 10));
+        const recommendedVideos = [...popular].reverse().slice(0, 10);
 
-        setLoading(false);
+        setVideos(popular);
       } catch (error) {
         console.error("Error fetching videos:", error);
-        setLoading(false);
       }
     };
 
@@ -316,15 +258,10 @@ function App() {
 
   // 오프라인 모드에서는 저장된 음악만 재생 가능
   const availableVideos = isOffline
-    ? downloadedVideos
+    ? videos
     : searchQuery && searchResults.length > 0
     ? searchResults
-    : [
-        ...recommendedVideos,
-        ...popularVideos,
-        ...trendingVideos,
-        ...downloadedVideos,
-      ];
+    : videos;
 
   // 오프라인 상태에서 저장되지 않은 음악 재생 시도 처리
   const handleVideoPlay = (video: Video) => {
@@ -342,7 +279,7 @@ function App() {
 
   // 음악이 저장되었는지 확인하는 함수
   const isVideoDownloaded = (videoId: string) => {
-    return downloadedVideos.some((v) => v.id === videoId);
+    return videos.some((v) => v.id === videoId);
   };
 
   // 시청 기록 중복 제거 및 최신 항목만 유지하는 함수
@@ -382,14 +319,10 @@ function App() {
 
     if (playlistId) {
       // 플레이리스트 재생 인덱스 설정
-      setCurrentPlaylistIndex(index);
       setCurrentPlaylistId(playlistId);
-      setCurrentDownloadIndex(-1);
     } else {
       // 저장된 음악 재생 인덱스 설정
-      setCurrentDownloadIndex(index);
       setCurrentPlaylistId(null);
-      setCurrentPlaylistIndex(-1);
     }
 
     // 선택한 비디오 재생
@@ -431,24 +364,27 @@ function App() {
       // 플레이리스트 또는 저장된 음악 재생 중인 경우
       if (currentPlaylistId) {
         // 플레이리스트 재생 중
-        if (currentPlaylistIndex > 0) {
-          const playlist = playlists.find((p) => p.id === currentPlaylistId);
-          if (playlist) {
-            startPlaylistPlayback(
-              playlist.videos,
-              currentPlaylistIndex - 1,
-              currentPlaylistId
-            );
-          }
+        const playlist = playlists.find((p) => p.id === currentPlaylistId);
+        if (playlist) {
+          startPlaylistPlayback(
+            playlist.videos,
+            playlist.videos.indexOf(currentVideo || videos[0]),
+            currentPlaylistId
+          );
         }
       } else {
         // 저장된 음악 재생 중
-        if (currentDownloadIndex > 0) {
-          startPlaylistPlayback(
-            downloadedVideos,
-            currentDownloadIndex - 1,
-            null
-          );
+        if (playbackStack.length > 0) {
+          const previousVideo = playbackStack[playbackStack.length - 1];
+
+          // 스택에서 제거
+          setPlaybackStack((prevStack) => prevStack.slice(0, -1));
+
+          // 이전 곡 재생
+          setCurrentVideo(previousVideo);
+
+          // 시청 기록에 추가 (중복 제거)
+          addToHistoryWithoutDuplicates(previousVideo);
         }
       }
     } else {
@@ -476,7 +412,8 @@ function App() {
         // 플레이리스트 재생 중
         const playlist = playlists.find((p) => p.id === currentPlaylistId);
         if (playlist) {
-          const nextIndex = currentPlaylistIndex + 1;
+          const nextIndex =
+            playlist.videos.indexOf(currentVideo || videos[0]) + 1;
 
           // 다음 곡이 있으면 재생, 없으면 반복 모드에 따라 처리
           if (nextIndex < playlist.videos.length) {
@@ -492,24 +429,21 @@ function App() {
         }
       } else {
         // 저장된 음악 재생 중
-        const nextIndex = currentDownloadIndex + 1;
+        const nextIndex = playbackStack.length;
 
         // 다음 곡이 있으면 재생, 없으면 반복 모드에 따라 처리
-        if (nextIndex < downloadedVideos.length) {
-          startPlaylistPlayback(downloadedVideos, nextIndex, null);
+        if (nextIndex < videos.length) {
+          startPlaylistPlayback(videos, nextIndex, null);
         } else if (repeatMode === "all") {
           // 전체 반복 모드면 처음부터 다시 재생
-          startPlaylistPlayback(downloadedVideos, 0, null);
+          startPlaylistPlayback(videos, 0, null);
         }
       }
     } else {
       // 일반 재생 중인 경우 - 비슷한 음악 추천하여 재생
       if (currentVideo) {
         // 비슷한 음악 찾기 (여기서는 간단히 추천 음악 목록에서 랜덤으로 선택)
-        const recommendationPool = [
-          ...recommendedVideos,
-          ...popularVideos,
-        ].filter(
+        const recommendationPool = videos.filter(
           (v) =>
             v.id !== currentVideo.id &&
             !playbackStack.some((p) => p.id === v.id)
@@ -548,14 +482,6 @@ function App() {
     }
   };
 
-  // 저장된 음악 목록 재생 처리
-  const handlePlayDownloads = (index: number = 0) => {
-    if (downloadedVideos.length > 0) {
-      // 저장된 음악 재생 시작
-      startPlaylistPlayback(downloadedVideos, index, null);
-    }
-  };
-
   const handleRemoveFromQueue = (videoId: string) => {
     setQueue((prev) => prev.filter((v) => v.id !== videoId));
   };
@@ -571,7 +497,8 @@ function App() {
   };
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActivePlaylistTab(newValue);
+    if (newValue > 4) return; // 5개의 탭만 존재
+    setMainTabValue(newValue);
   };
 
   // 플레이리스트 관련 핸들러
@@ -638,12 +565,12 @@ function App() {
 
   const handleSelectPlaylist = (playlistId: string) => {
     setSelectedPlaylistId(playlistId);
-    setActivePlaylistTab(1); // 상세 보기 탭으로 전환
+    setMainTabValue(2); // 플레이리스트 탭으로 전환
   };
 
   const handleBackToPlaylists = () => {
     setSelectedPlaylistId(null);
-    setActivePlaylistTab(0); // 목록 탭으로 전환
+    setMainTabValue(2); // 플레이리스트 탭으로 전환
   };
 
   const handleAddToPlaylist = (playlistId: string, video: Video) => {
@@ -682,7 +609,7 @@ function App() {
     message: string,
     severity: "success" | "error" | "warning" | "info"
   ) => {
-    setSnackbar({
+    setSnackbarState({
       open: true,
       message,
       severity,
@@ -690,40 +617,15 @@ function App() {
   };
 
   const handleCloseSnackbar = () => {
-    setSnackbar((prev) => ({ ...prev, open: false }));
+    setSnackbarState((prev) => ({ ...prev, open: false }));
   };
 
   const handleMainTabChange = (
     event: React.SyntheticEvent,
     newValue: number
   ) => {
+    if (newValue > 4) return; // 5개의 탭만 존재
     setMainTabValue(newValue);
-    setSelectedPlaylistId(null);
-  };
-
-  const handleDownloadVideo = (video: Video) => {
-    if (!checkLoginRequired("음악 저장")) return;
-
-    // 이미 다운로드된 비디오인지 확인
-    if (!downloadedVideos.some((v) => v.id === video.id)) {
-      const videoWithDeviceId = {
-        ...video,
-        deviceId: navigator.userAgent,
-        downloadedAt: Date.now(),
-      };
-      setDownloadedVideos((prev) => [...prev, videoWithDeviceId]);
-      showSnackbar(
-        "음악이 저장되었습니다. 이 기기에서 오프라인에서도 재생할 수 있습니다.",
-        "success"
-      );
-    } else {
-      showSnackbar("이미 저장된 음악입니다", "info");
-    }
-  };
-
-  const handleRemoveDownload = (videoId: string) => {
-    setDownloadedVideos((prev) => prev.filter((v) => v.id !== videoId));
-    showSnackbar("저장한 음악이 삭제되었습니다", "success");
   };
 
   const handleSearch = async (query: string) => {
@@ -772,7 +674,7 @@ function App() {
         if (playlist) {
           const shuffledVideos = shufflePlaylist(
             playlist.videos,
-            currentPlaylistIndex
+            playlist.videos.indexOf(currentVideo || videos[0])
           );
 
           // 섞인 플레이리스트로 업데이트
@@ -782,30 +684,24 @@ function App() {
 
           setPlaylists(updatedPlaylists);
           // 현재 재생 중인 곡이 맨 앞으로 왔으므로 인덱스 업데이트
-          setCurrentPlaylistIndex(0);
+          setMainTabValue(2);
         }
-      } else if (currentDownloadIndex >= 0) {
+      } else if (playbackStack.length > 0) {
         // 저장된 음악 목록 셔플
         const shuffledDownloads = shufflePlaylist(
-          downloadedVideos,
-          currentDownloadIndex
+          videos,
+          videos.indexOf(currentVideo || videos[0])
         );
-        setDownloadedVideos(shuffledDownloads);
+        setVideos(shuffledDownloads);
         // 현재 재생 중인 곡이 맨 앞으로 왔으므로 인덱스 업데이트
-        setCurrentDownloadIndex(0);
+        setMainTabValue(2);
       }
     }
   };
 
+  // 음악 목록 그리드 렌더링
   const renderMusicGrid = (videos: Video[], title: string) => {
     if (videos.length === 0) return null;
-
-    // 오프라인 모드에서 필터링된 비디오 (저장된 것만 표시)
-    const filteredVideos = isOffline
-      ? videos.filter((video) => isVideoDownloaded(video.id))
-      : videos;
-
-    if (filteredVideos.length === 0) return null;
 
     return (
       <Box sx={{ mb: 3 }}>
@@ -820,12 +716,12 @@ function App() {
           {title}
         </Typography>
         <Box className="music-grid-container">
-          {filteredVideos.map((video) => (
+          {videos.map((video) => (
             <Box
               key={video.id}
               className={`album-art ${
-                isVideoDownloaded(video.id) ? "saved-music" : ""
-              } ${currentVideo?.id === video.id ? "now-playing" : ""}`}
+                currentVideo?.id === video.id ? "now-playing" : ""
+              }`}
               sx={{
                 cursor: "pointer",
                 transition: "all 0.2s",
@@ -889,54 +785,7 @@ function App() {
                 >
                   {video.channelTitle}
                 </Typography>
-
-                {isVideoDownloaded(video.id) && (
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: 8,
-                      left: 8,
-                      bgcolor: "rgba(0,0,0,0.6)",
-                      borderRadius: "50%",
-                      p: 0.5,
-                    }}
-                  >
-                    <DownloadIcon
-                      sx={{
-                        color: "primary.main",
-                        fontSize: 16,
-                      }}
-                    />
-                  </Box>
-                )}
               </Box>
-
-              {!isOffline && !isVideoDownloaded(video.id) && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: 8,
-                    right: 8,
-                    zIndex: 1,
-                  }}
-                >
-                  <IconButton
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadVideo(video);
-                    }}
-                    sx={{
-                      bgcolor: "rgba(0,0,0,0.6)",
-                      color: "white",
-                      "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
-                      p: 0.5,
-                    }}
-                  >
-                    <DownloadIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Box>
-              )}
             </Box>
           ))}
         </Box>
@@ -1016,68 +865,7 @@ function App() {
       );
     }
 
-    return (
-      <Box>
-        {renderMusicGrid(recommendedVideos, "추천 음악")}
-        {renderMusicGrid(popularVideos, "인기 음악")}
-        {renderMusicGrid(trendingVideos, "최신 트렌드")}
-
-        {/* 장르별 음악 */}
-        <Box sx={{ mb: 4, px: isMobile ? 1 : 0 }}>
-          <Typography
-            variant={isMobile ? "subtitle1" : "h6"}
-            sx={{
-              mb: 1.5,
-              fontWeight: "bold",
-            }}
-          >
-            장르별 음악
-          </Typography>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: isMobile
-                ? "repeat(2, 1fr)"
-                : "repeat(auto-fill, minmax(150px, 1fr))",
-              gap: 1.5,
-            }}
-          >
-            {["팝", "락", "힙합", "재즈", "클래식", "K-Pop"].map(
-              (genre, index) => (
-                <Box
-                  key={genre}
-                  className="genre-card"
-                  sx={{
-                    height: isMobile ? 80 : 100,
-                    borderRadius: 2,
-                    backgroundImage: `url(https://source.unsplash.com/random/150x100?${genre}-music&sig=${index})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    position: "relative",
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      color: "white",
-                      fontWeight: 700,
-                      position: "relative",
-                      zIndex: 1,
-                      textShadow: "0 1px 3px rgba(0,0,0,0.5)",
-                    }}
-                  >
-                    {genre}
-                  </Typography>
-                </Box>
-              )
-            )}
-          </Box>
-        </Box>
-      </Box>
-    );
+    return <Box>{renderMusicGrid(videos, "추천 음악")}</Box>;
   };
 
   // 시청 기록에서 항목 삭제 함수
@@ -1320,8 +1108,8 @@ function App() {
     return (
       <Box sx={{ height: "100%" }}>
         <Tabs
-          value={activePlaylistTab}
-          onChange={(e, v) => setActivePlaylistTab(v)}
+          value={mainTabValue}
+          onChange={handleTabChange}
           variant="fullWidth"
           indicatorColor="primary"
           textColor="primary"
@@ -1330,7 +1118,7 @@ function App() {
           {selectedPlaylistId && <Tab label="상세" />}
         </Tabs>
 
-        {activePlaylistTab === 0 && (
+        {mainTabValue === 0 && (
           <Playlists
             playlists={playlists}
             onCreatePlaylist={handleCreatePlaylist}
@@ -1343,7 +1131,7 @@ function App() {
           />
         )}
 
-        {activePlaylistTab === 1 && selectedPlaylistId && (
+        {mainTabValue === 1 && selectedPlaylistId && (
           <PlaylistDetail
             playlist={
               playlists.find((p) => p.id === selectedPlaylistId) || null
@@ -1360,228 +1148,37 @@ function App() {
     );
   };
 
-  const renderDownloadsTab = () => {
-    if (downloadedVideos.length === 0) {
-      return (
-        <Box sx={{ p: 3, textAlign: "center" }}>
-          <Typography variant="body1" color="text.secondary">
-            저장된 음악이 없습니다. 음악을 다운로드하면 오프라인에서도 재생할 수
-            있습니다.
-          </Typography>
-        </Box>
-      );
-    }
-
-    // 현재 기기에 다운로드된 음악만 필터링
-    const currentUserAgent = navigator.userAgent;
-    const currentDeviceDownloads = downloadedVideos.filter(
-      (video) => video.deviceId === currentUserAgent
-    );
-
-    // 다른 기기에 다운로드된 음악 필터링
-    const otherDeviceDownloads = downloadedVideos.filter(
-      (video) => video.deviceId !== currentUserAgent
-    );
-
-    return (
-      <Box>
-        {currentDeviceDownloads.length > 0 && (
-          <>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              이 기기에 저장된 음악
-            </Typography>
-            <List sx={{ width: "100%", mb: 4 }}>
-              {currentDeviceDownloads.map((video) => (
-                <Box
-                  key={video.id}
-                  sx={{
-                    display: "flex",
-                    p: isMobile ? 0.8 : 1,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flex: 1,
-                      alignItems: "center",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleVideoSelect(video)}
-                  >
-                    <Box
-                      sx={{
-                        width: isMobile ? 80 : 120,
-                        flexShrink: 0,
-                        mr: isMobile ? 1 : 2,
-                      }}
-                      className={isMobile ? "mobile-thumbnail" : ""}
-                    >
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        style={{
-                          width: "100%",
-                          borderRadius: 4,
-                          aspectRatio: "16/9",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </Box>
-                    <Box sx={{ flex: 1, overflow: "hidden" }}>
-                      <Typography
-                        variant={isMobile ? "body2" : "body1"}
-                        noWrap
-                        className={isMobile ? "mobile-title" : ""}
-                      >
-                        {video.title}
-                      </Typography>
-                      <Typography
-                        variant={isMobile ? "caption" : "body2"}
-                        color="text.secondary"
-                        noWrap
-                        className={isMobile ? "mobile-subtitle" : ""}
-                      >
-                        {video.channelTitle}
-                      </Typography>
-                      {video.downloadedAt && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ fontSize: isMobile ? "10px" : "inherit" }}
-                        >
-                          저장 날짜:{" "}
-                          {new Date(video.downloadedAt).toLocaleDateString()}
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <IconButton
-                      size={isMobile ? "small" : "medium"}
-                      onClick={() => handleRemoveDownload(video.id)}
-                      edge="end"
-                    >
-                      <DeleteIcon fontSize={isMobile ? "small" : "medium"} />
-                    </IconButton>
-                  </Box>
-                </Box>
-              ))}
-            </List>
-          </>
-        )}
-
-        {otherDeviceDownloads.length > 0 && (
-          <>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              다른 기기에 저장된 음악
-            </Typography>
-            <List sx={{ width: "100%" }}>
-              {otherDeviceDownloads.map((video) => (
-                <Box
-                  key={video.id}
-                  sx={{
-                    display: "flex",
-                    p: isMobile ? 0.8 : 1,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flex: 1,
-                      alignItems: "center",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleVideoSelect(video)}
-                  >
-                    <Box
-                      sx={{
-                        width: isMobile ? 80 : 120,
-                        flexShrink: 0,
-                        mr: isMobile ? 1 : 2,
-                      }}
-                      className={isMobile ? "mobile-thumbnail" : ""}
-                    >
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        style={{
-                          width: "100%",
-                          borderRadius: 4,
-                          aspectRatio: "16/9",
-                          objectFit: "cover",
-                        }}
-                      />
-                    </Box>
-                    <Box sx={{ flex: 1, overflow: "hidden" }}>
-                      <Typography
-                        variant={isMobile ? "body2" : "body1"}
-                        noWrap
-                        className={isMobile ? "mobile-title" : ""}
-                      >
-                        {video.title}
-                      </Typography>
-                      <Typography
-                        variant={isMobile ? "caption" : "body2"}
-                        color="text.secondary"
-                        noWrap
-                        className={isMobile ? "mobile-subtitle" : ""}
-                      >
-                        {video.channelTitle}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Button
-                      startIcon={<DownloadIcon />}
-                      variant="outlined"
-                      size={isMobile ? "small" : "medium"}
-                      color="primary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadVideo(video);
-                      }}
-                    >
-                      이 기기에 저장
-                    </Button>
-                  </Box>
-                </Box>
-              ))}
-            </List>
-          </>
-        )}
-      </Box>
-    );
-  };
-
   // 음악 재생 탭 렌더링
   const renderNowPlayingTab = () => {
     return (
       <Box sx={{ height: "100%", overflow: "auto", pt: 2 }}>
         <NowPlayingContent
           currentVideo={currentVideo}
-          isPlaying={playerStateObj.isPlaying}
-          currentTime={playerStateObj.currentTime}
-          duration={playerStateObj.duration}
-          volume={playerStateObj.volume}
-          isMuted={playerStateObj.isMuted}
-          videoViews={playerStateObj.videoViews}
-          onToggleMute={playerStateObj.toggleMute}
-          togglePlayPause={playerStateObj.togglePlayPause}
-          handleVolumeChange={playerStateObj.handleVolumeChange}
-          handleProgressChange={playerStateObj.handleProgressChange}
+          isPlaying={playerStateObj?.isPlaying || false}
+          currentTime={playerStateObj?.currentTime || 0}
+          duration={playerStateObj?.duration || 0}
+          volume={playerStateObj?.volume || 70}
+          isMuted={playerStateObj?.isMuted || false}
+          videoViews={playerStateObj?.videoViews || ""}
+          onToggleMute={playerStateObj?.toggleMute || (() => {})}
+          togglePlayPause={playerStateObj?.togglePlayPause || (() => {})}
+          handleVolumeChange={playerStateObj?.handleVolumeChange || (() => {})}
+          handleProgressChange={
+            playerStateObj?.handleProgressChange || (() => {})
+          }
           handlePrevious={handlePreviousTrack}
           handleNext={handleNextTrack}
-          formatTime={playerStateObj.formatTime}
+          formatTime={playerStateObj?.formatTime || formatTimeHelper}
           hasNextTrack={queue.length > 0}
           hasPreviousTrack={history.length > 0}
-          needsUserInteraction={playerStateObj.needsUserInteraction}
-          attemptUnmute={playerStateObj.attemptUnmute}
+          needsUserInteraction={playerStateObj?.needsUserInteraction || false}
+          attemptUnmute={playerStateObj?.attemptUnmute || (() => false)}
           repeatMode={repeatMode}
           onRepeatModeChange={handleToggleRepeatMode}
+          shuffleEnabled={shuffleEnabled}
+          onShuffleChange={handleShuffleChange}
+          isPlayingPlaylist={isPlayingPlaylist}
+          onAddToPlaylist={() => toggleAddToPlaylistDialog()}
         />
       </Box>
     );
@@ -1599,29 +1196,144 @@ function App() {
     setHistory([]);
     localStorage.removeItem(`history_${user.uid}`);
 
-    // 저장한 음악 초기화
-    setDownloadedVideos([]);
-    localStorage.removeItem(`downloads_${user.uid}`);
-
     showSnackbar("계정 데이터가 초기화되었습니다.", "success");
   };
 
-  // 모바일 화면 감지 - 윈도우 크기 기반 백업 로직 추가
-  const isMobile =
-    useMediaQuery("(max-width:600px)") ||
-    (typeof window !== "undefined" && window.innerWidth < 600);
-
-  // 반복 모드 변경
-  const handleToggleRepeatMode = () => {
-    setRepeatMode((prev) => {
-      const newMode = prev === "none" ? "all" : prev === "all" ? "one" : "none";
-      return newMode;
-    });
+  // 반복 재생 모드 변경
+  const handleToggleRepeatMode = (mode: "none" | "all" | "one") => {
+    setRepeatMode(mode);
+    const message =
+      mode === "none"
+        ? "반복 재생이 꺼졌습니다"
+        : mode === "all"
+        ? "모든 곡을 반복 재생합니다"
+        : "한 곡을 반복 재생합니다";
+    showSnackbar(message, "info");
   };
 
   // 셔플 모드 변경
   const handleToggleShuffle = () => {
     setShuffleEnabled(!shuffleEnabled);
+  };
+
+  // 설정 탭 렌더링
+  const renderSettingsTab = () => {
+    return (
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" sx={{ mb: 3 }}>
+          설정
+        </Typography>
+
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "bold" }}>
+            계정
+          </Typography>
+          {user ? (
+            <>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <Avatar
+                  src={user.photoURL || undefined}
+                  alt={user.displayName || "사용자"}
+                  sx={{ mr: 2 }}
+                />
+                <Box>
+                  <Typography variant="body1">
+                    {user.displayName || "사용자"}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {user.email}
+                  </Typography>
+                </Box>
+              </Box>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={logout}
+                startIcon={<LogoutIcon />}
+                fullWidth
+                sx={{ mb: 1 }}
+              >
+                로그아웃
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleClearUserData}
+                startIcon={<DeleteIcon />}
+                fullWidth
+              >
+                계정 데이터 초기화
+              </Button>
+            </>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                로그인하여 플레이리스트를 저장하고 기기 간에 동기화하세요.
+              </Typography>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={signInWithGoogle}
+                startIcon={<GoogleIcon />}
+                fullWidth
+                sx={{ mb: 1 }}
+              >
+                Google로 로그인
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={signInWithGithub}
+                startIcon={<GitHubIcon />}
+                fullWidth
+              >
+                GitHub로 로그인
+              </Button>
+            </>
+          )}
+        </Paper>
+
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "bold" }}>
+            앱 정보
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            버전: 1.0.0
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            © 2023 STTfy
+          </Typography>
+        </Paper>
+
+        <Paper sx={{ p: 2 }}>
+          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: "bold" }}>
+            참고
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            이 앱은 YouTube API를 사용하며, YouTube 서비스 약관을 준수합니다.
+          </Typography>
+          <Box sx={{ mt: 1 }}>
+            <Link
+              href="https://policies.google.com/privacy"
+              target="_blank"
+              rel="noopener"
+              color="primary"
+              sx={{ display: "block", mb: 0.5 }}
+            >
+              Google 개인정보처리방침
+            </Link>
+            <Link
+              href="https://policies.google.com/terms"
+              target="_blank"
+              rel="noopener"
+              color="primary"
+            >
+              YouTube 서비스 약관
+            </Link>
+          </Box>
+        </Paper>
+      </Box>
+    );
   };
 
   return (
@@ -1763,7 +1475,7 @@ function App() {
               <Paper elevation={3} sx={{ mb: 3 }}>
                 <Tabs
                   value={mainTabValue}
-                  onChange={handleMainTabChange}
+                  onChange={handleTabChange}
                   variant="fullWidth"
                   indicatorColor="primary"
                   textColor="primary"
@@ -1771,7 +1483,6 @@ function App() {
                   <Tab icon={<HomeIcon />} label="홈" />
                   <Tab icon={<HistoryIcon />} label="기록" />
                   <Tab icon={<LibraryMusic />} label="플레이리스트" />
-                  <Tab icon={<DownloadIcon />} label="저장됨" />
                   <Tab icon={<MusicNoteIcon />} label="재생 중" />
                 </Tabs>
 
@@ -1779,8 +1490,7 @@ function App() {
                   {mainTabValue === 0 && renderHomeTab()}
                   {mainTabValue === 1 && renderHistoryTab()}
                   {mainTabValue === 2 && renderPlaylistsTab()}
-                  {mainTabValue === 3 && renderDownloadsTab()}
-                  {mainTabValue === 4 && renderNowPlayingTab()}
+                  {mainTabValue === 3 && renderNowPlayingTab()}
                 </Box>
               </Paper>
             )}
@@ -1795,14 +1505,13 @@ function App() {
                   {mainTabValue === 0 && renderHomeTab()}
                   {mainTabValue === 1 && renderHistoryTab()}
                   {mainTabValue === 2 && renderPlaylistsTab()}
-                  {mainTabValue === 3 && renderDownloadsTab()}
-                  {mainTabValue === 4 && renderNowPlayingTab()}
+                  {mainTabValue === 3 && renderNowPlayingTab()}
                 </Box>
 
                 <Paper elevation={3} className="mobile-bottom-tabs">
                   <Tabs
                     value={mainTabValue}
-                    onChange={handleMainTabChange}
+                    onChange={handleTabChange}
                     variant="fullWidth"
                     indicatorColor="primary"
                     textColor="primary"
@@ -1811,7 +1520,6 @@ function App() {
                     <Tab icon={<HomeIcon />} aria-label="홈" />
                     <Tab icon={<HistoryIcon />} aria-label="기록" />
                     <Tab icon={<LibraryMusic />} aria-label="플레이리스트" />
-                    <Tab icon={<DownloadIcon />} aria-label="저장됨" />
                     <Tab
                       icon={<MusicNoteIcon />}
                       aria-label="재생 중"
@@ -1899,7 +1607,7 @@ function App() {
           </Dialog>
 
           <Snackbar
-            open={snackbar.open}
+            open={snackbarState.open}
             autoHideDuration={3000}
             onClose={handleCloseSnackbar}
             anchorOrigin={{
@@ -1912,13 +1620,13 @@ function App() {
           >
             <Alert
               onClose={handleCloseSnackbar}
-              severity={snackbar.severity}
+              severity={snackbarState.severity}
               sx={{
                 width: "100%",
                 boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               }}
             >
-              {snackbar.message}
+              {snackbarState.message}
             </Alert>
           </Snackbar>
 
@@ -1938,7 +1646,7 @@ function App() {
             shuffleEnabled={shuffleEnabled}
             onShuffleChange={handleShuffleChange}
             isMobile={isMobile}
-            onNavigateToNowPlaying={() => setMainTabValue(4)}
+            onNavigateToNowPlaying={() => setMainTabValue(1)}
           />
 
           {isOffline && (

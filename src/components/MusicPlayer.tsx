@@ -20,6 +20,8 @@ import {
   RepeatOne,
   Repeat,
   RepeatOneOn,
+  Shuffle,
+  PlaylistAdd,
 } from "@mui/icons-material";
 import { Video } from "../types";
 import "../App.css";
@@ -46,6 +48,10 @@ export const NowPlayingContent: React.FC<{
   attemptUnmute?: () => void;
   repeatMode?: "none" | "one" | "all";
   onRepeatModeChange?: (mode: "none" | "one" | "all") => void;
+  shuffleEnabled?: boolean;
+  onShuffleChange?: (enabled: boolean) => void;
+  isPlayingPlaylist?: boolean;
+  onAddToPlaylist?: (video: Video) => void;
 }> = ({
   currentVideo,
   isPlaying,
@@ -67,13 +73,17 @@ export const NowPlayingContent: React.FC<{
   attemptUnmute,
   repeatMode = "none",
   onRepeatModeChange,
+  shuffleEnabled = false,
+  onShuffleChange,
+  isPlayingPlaylist = false,
+  onAddToPlaylist,
 }) => {
   if (!currentVideo) return null;
 
   // 반복 모드 전환 함수
   const handleToggleRepeat = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onRepeatModeChange) {
+    if (onRepeatModeChange && isPlayingPlaylist) {
       if (repeatMode === "none") {
         onRepeatModeChange("all");
       } else if (repeatMode === "all") {
@@ -81,6 +91,22 @@ export const NowPlayingContent: React.FC<{
       } else {
         onRepeatModeChange("none");
       }
+    }
+  };
+
+  // 셔플 모드 전환 함수
+  const handleToggleShuffle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onShuffleChange && isPlayingPlaylist) {
+      onShuffleChange(!shuffleEnabled);
+    }
+  };
+
+  // 플레이리스트에 추가
+  const handleAddToPlaylist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onAddToPlaylist && currentVideo) {
+      onAddToPlaylist(currentVideo);
     }
   };
 
@@ -250,7 +276,7 @@ export const NowPlayingContent: React.FC<{
         </IconButton>
       </Box>
 
-      {/* 반복 재생 및 볼륨 컨트롤 */}
+      {/* 플레이백 기능 컨트롤 */}
       <Box
         sx={{
           display: "flex",
@@ -261,11 +287,25 @@ export const NowPlayingContent: React.FC<{
           gap: 2,
         }}
       >
+        {/* 셔플 버튼 */}
+        <IconButton
+          onClick={handleToggleShuffle}
+          disabled={!isPlayingPlaylist}
+          sx={{
+            color: shuffleEnabled ? "#1db954" : "rgba(255,255,255,0.7)",
+            "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
+          }}
+        >
+          <Shuffle />
+        </IconButton>
+
         {/* 반복 재생 버튼 */}
         <IconButton
           onClick={handleToggleRepeat}
+          disabled={!isPlayingPlaylist}
           sx={{
             color: repeatMode !== "none" ? "#1db954" : "rgba(255,255,255,0.7)",
+            "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
           }}
         >
           {repeatMode === "one" ? (
@@ -275,6 +315,16 @@ export const NowPlayingContent: React.FC<{
           ) : (
             <Repeat />
           )}
+        </IconButton>
+
+        {/* 플레이리스트에 추가 버튼 */}
+        <IconButton
+          onClick={handleAddToPlaylist}
+          sx={{
+            color: "rgba(255,255,255,0.7)",
+          }}
+        >
+          <PlaylistAdd />
         </IconButton>
 
         {/* 볼륨 컨트롤 */}
@@ -349,6 +399,7 @@ export interface MusicPlayerState {
   formatTime: (time: number) => string;
   needsUserInteraction?: boolean;
   attemptUnmute?: () => boolean;
+  isPlayingPlaylist?: boolean;
 }
 
 // 재생 상태를 모니터링하기 위한 리스너 함수형 타입
@@ -402,6 +453,8 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   hasPreviousTrack = false,
   repeatMode = "none",
   onRepeatModeChange,
+  shuffleEnabled = false,
+  onShuffleChange,
   isMobile = false,
   onNavigateToNowPlaying,
 }) => {
@@ -770,6 +823,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       formatTime,
       needsUserInteraction,
       attemptUnmute,
+      isPlayingPlaylist,
     };
 
     notifyStateListeners(state);
@@ -781,6 +835,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     isMuted,
     videoViews,
     needsUserInteraction,
+    isPlayingPlaylist,
   ]);
 
   // iOS가 아닌 경우에는 사용자 상호작용 필요 없이 자동 재생
@@ -964,11 +1019,30 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
             </Box>
           </Box>
 
-          {/* 반복 재생 버튼 */}
+          {/* 셔플 버튼 - 플레이리스트 재생시에만 활성화 */}
           <IconButton
             onClick={(e) => {
               e.stopPropagation();
-              if (onRepeatModeChange) {
+              if (onShuffleChange && isPlayingPlaylist) {
+                onShuffleChange(!shuffleEnabled);
+              }
+            }}
+            disabled={!isPlayingPlaylist}
+            size="small"
+            sx={{
+              color: shuffleEnabled ? "#1db954" : "rgba(255,255,255,0.5)",
+              mr: 1,
+              "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
+            }}
+          >
+            <Shuffle fontSize="small" />
+          </IconButton>
+
+          {/* 반복 재생 버튼 - 플레이리스트 재생시에만 활성화 */}
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRepeatModeChange && isPlayingPlaylist) {
                 if (repeatMode === "none") {
                   onRepeatModeChange("all");
                 } else if (repeatMode === "all") {
@@ -978,11 +1052,13 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
                 }
               }
             }}
+            disabled={!isPlayingPlaylist}
             size="small"
             sx={{
               color:
                 repeatMode !== "none" ? "#1db954" : "rgba(255,255,255,0.5)",
               mr: 1,
+              "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
             }}
           >
             {repeatMode === "one" ? (
