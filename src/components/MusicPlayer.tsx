@@ -326,17 +326,19 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // YouTube 플레이어 옵션
   const youtubeOpts = {
-    height: "0",
-    width: "0",
+    height: isMobileDevice ? "180" : "0",
+    width: isMobileDevice ? "320" : "0",
     playerVars: {
       autoplay: 1,
-      controls: 0,
+      controls: isMobileDevice ? 1 : 0,
       mute: 0,
       disablekb: 1,
       fs: 0,
       modestbranding: 1,
       rel: 0,
       playsinline: 1,
+      origin: window.location.origin,
+      enablejsapi: 1,
     },
   };
 
@@ -673,16 +675,18 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   return (
     <>
-      {/* 숨겨진 유튜브 플레이어 */}
+      {/* YouTube 플레이어 컨테이너 */}
       <div
         style={{
           position: "fixed",
           left: 0,
           top: 0,
-          width: "1px",
-          height: "1px",
-          opacity: 0.01,
-          pointerEvents: "none",
+          width: isMobileDevice ? "100%" : "1px",
+          height: isMobileDevice ? "auto" : "1px",
+          opacity: isMobileDevice ? 1 : 0.01,
+          pointerEvents: isMobileDevice ? "auto" : "none",
+          zIndex: isMobileDevice ? 1000 : -1,
+          display: !currentVideo ? "none" : "block",
         }}
       >
         {currentVideo && (

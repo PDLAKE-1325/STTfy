@@ -5,11 +5,10 @@ import { Video } from "../types";
 const API_KEY = "AIzaSyD9et-EpaZtdQQAHt-Jo-Mp7Jw2TQxr6nA";
 const API_URL = "https://www.googleapis.com/youtube/v3";
 
-// 오디오 URL 생성 함수 (실제로는 서버에서 처리해야 함)
+// 오디오 URL 생성 함수 (모바일 지원)
 const getAudioUrlForVideo = (videoId: string): string => {
-  // 실제 구현에서는 서버 API를 통해 오디오를 가져와야 함
-  // 이 예제에서는 가상의 URL을 반환
-  return `https://audio-server.example.com/api/audio/${videoId}`;
+  // 직접 YouTube 임베드 URL 사용 (모바일 호환)
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&playsinline=1`;
 };
 
 export const searchVideos = async (query: string): Promise<Video[]> => {
