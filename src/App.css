@@ -257,6 +257,53 @@ body {
     height: 1px !important;
     opacity: 0.01 !important;
   }
+
+  /* 모바일 전용 풀 플레이어 스타일 */
+  .mobile-full-player .MuiContainer-root {
+    padding: 16px 8px;
+  }
+
+  .mobile-full-player .album-art {
+    width: 70vw !important;
+    height: 70vw !important;
+  }
+
+  /* 모바일에서 컨트롤 크기 최적화 */
+  .mobile-controls .MuiIconButton-root {
+    padding: 8px;
+  }
+
+  .mobile-play-button {
+    width: 56px !important;
+    height: 56px !important;
+  }
+
+  /* 모바일 미니 플레이어 (탭 메뉴 위에 위치) */
+  .mobile-mini-player {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* 스마트폰 가로 화면 최적화 */
+@media (min-width: 601px) and (max-width: 896px) and (orientation: landscape) {
+  .landscape-player {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 16px !important;
+  }
+
+  .landscape-album-art {
+    width: 25vh !important;
+    height: 25vh !important;
+    margin-right: 32px !important;
+  }
+
+  .landscape-controls {
+    flex: 1;
+  }
 }
 
 .App {
@@ -585,4 +632,116 @@ body {
 .mobile-tabs .MuiTab-root {
   min-height: 56px;
   padding: 6px 10px;
+}
+
+/* 새로운 Spotify 스타일 애니메이션 및 플레이어 디자인 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Spotify 스타일 미니 플레이어 */
+.mini-player {
+  background-color: #121212;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.mini-player:hover {
+  background-color: #181818;
+}
+
+.mini-player .MuiSlider-root {
+  height: 4px;
+}
+
+.mini-player .MuiSlider-thumb {
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.mini-player:hover .MuiSlider-thumb {
+  width: 12px;
+  height: 12px;
+  opacity: 1;
+}
+
+/* Spotify 스타일 풀 플레이어 */
+.full-player {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0), #121212);
+}
+
+.full-player .album-art {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  transform: none;
+  transition: transform 0.3s ease;
+}
+
+.full-player .album-art:hover {
+  transform: scale(1.02);
+}
+
+/* 재생 버튼 특별 효과 */
+.play-button {
+  background-color: #1db954 !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+}
+
+.play-button:hover {
+  background-color: #1ed760 !important;
+  transform: scale(1.05) !important;
+}
+
+/* 진행 바 스타일 */
+.progress-bar {
+  height: 4px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #1db954;
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* 볼륨 슬라이더 스타일 */
+.volume-slider .MuiSlider-rail {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+
+.volume-slider .MuiSlider-track {
+  background-color: #1db954;
+}
+
+/* 타이틀과 아티스트 애니메이션 (긴 제목일 경우) */
+.marquee {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.3s ease;
+}
+
+.marquee:hover {
+  animation: marquee 8s linear infinite;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }

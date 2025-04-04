@@ -1422,89 +1422,6 @@ function App() {
           >
             {currentVideo.channelTitle}
           </Typography>
-
-          <Box sx={{ mt: 3 }}>
-            <Stack
-              direction="row"
-              spacing={2}
-              justifyContent="center"
-              sx={{ mb: 4 }}
-            >
-              <IconButton
-                onClick={handleToggleRepeatMode}
-                color={repeatMode !== "none" ? "primary" : "default"}
-                sx={{
-                  transition: "all 0.2s ease",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              >
-                {repeatMode === "one" ? <RepeatOne /> : <Repeat />}
-              </IconButton>
-
-              <IconButton
-                onClick={handlePreviousTrack}
-                disabled={!hasPreviousTrack && history.length === 0}
-                sx={{
-                  transition: "all 0.2s ease",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              >
-                <SkipPrevious />
-              </IconButton>
-
-              <IconButton
-                onClick={() => {
-                  if (playerRef.current) {
-                    if (isPlaying) {
-                      playerRef.current.pauseVideo();
-                    } else {
-                      playerRef.current.playVideo();
-                    }
-                    setIsPlaying(!isPlaying);
-                  }
-                }}
-                sx={{
-                  bgcolor: "primary.main",
-                  color: "white",
-                  width: 60,
-                  height: 60,
-                  transition: "all 0.2s ease",
-                  "&:hover": {
-                    transform: "scale(1.1)",
-                    bgcolor: "primary.dark",
-                  },
-                }}
-              >
-                {isPlaying ? (
-                  <Pause fontSize="large" />
-                ) : (
-                  <PlayArrow fontSize="large" />
-                )}
-              </IconButton>
-
-              <IconButton
-                onClick={handleNextTrack}
-                disabled={queue.length === 0 && !hasNextTrack}
-                sx={{
-                  transition: "all 0.2s ease",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              >
-                <SkipNext />
-              </IconButton>
-
-              <IconButton
-                onClick={handleToggleShuffle}
-                color={isShuffle ? "primary" : "default"}
-                sx={{
-                  transition: "all 0.2s ease",
-                  "&:hover": { transform: "scale(1.1)" },
-                }}
-              >
-                <Shuffle />
-              </IconButton>
-            </Stack>
-          </Box>
         </Paper>
 
         <Box sx={{ mt: 4 }}>
@@ -1949,7 +1866,7 @@ function App() {
             repeatMode={repeatMode}
             onRepeatModeChange={handleToggleRepeatMode}
             shuffleEnabled={shuffleEnabled}
-            onShuffleChange={handleShuffleChange}
+            onShuffleChange={handleToggleShuffle}
             isMobile={isMobile}
           />
 
