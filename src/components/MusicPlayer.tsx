@@ -326,11 +326,11 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // YouTube 플레이어 옵션
   const youtubeOpts = {
-    height: isMobileDevice ? "180" : "0",
-    width: isMobileDevice ? "320" : "0",
+    height: "0",
+    width: "0",
     playerVars: {
       autoplay: 1,
-      controls: isMobileDevice ? 1 : 0,
+      controls: 0,
       mute: 0,
       disablekb: 1,
       fs: 0,
@@ -344,30 +344,44 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // 플레이어 준비 완료 핸들러
   const handleReady = (event: YouTubeEvent) => {
+    console.log("YouTube Player Ready");
     playerRef.current = event.target;
 
     if (playerRef.current) {
-      playerRef.current.setVolume(volume);
-      playerRef.current.unMute();
-      setIsMuted(false);
-      setIsPlaying(true);
-      playerRef.current.playVideo();
-      startProgressTracking();
-
-      // 영상 길이 설정
-      setDuration(playerRef.current.getDuration());
-
-      // 조회수 정보를 가져오기 위한 시도
+      // 초기 상태 설정
       try {
-        const videoData = playerRef.current.getVideoData();
-        if (videoData && videoData.view_count) {
-          const views = parseInt(videoData.view_count);
-          if (!isNaN(views)) {
-            setVideoViews(formatViewCount(views));
-          }
+        // 볼륨 설정 및 음소거 해제
+        playerRef.current.setVolume(volume);
+        playerRef.current.unMute();
+        setIsMuted(false);
+
+        // 영상 길이 설정
+        const videoDuration = playerRef.current.getDuration();
+        if (videoDuration && videoDuration > 0) {
+          setDuration(videoDuration);
         }
+
+        // 재생 시작
+        setIsPlaying(true);
+        playerRef.current.playVideo();
+        startProgressTracking();
+
+        // 조회수 정보 가져오기
+        setTimeout(() => {
+          try {
+            const videoData = playerRef.current?.getVideoData();
+            if (videoData && videoData.view_count) {
+              const views = parseInt(videoData.view_count);
+              if (!isNaN(views)) {
+                setVideoViews(formatViewCount(views));
+              }
+            }
+          } catch (error) {
+            console.log("조회수 정보를 가져올 수 없습니다");
+          }
+        }, 1000);
       } catch (error) {
-        console.log("조회수 정보를 가져올 수 없습니다");
+        console.error("YouTube 플레이어 초기화 중 오류:", error);
       }
     }
   };
@@ -375,26 +389,57 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   // 플레이어 상태 변경 핸들러
   const handleStateChange = (event: YouTubeEvent) => {
     const playerState = event.data;
+    console.log("YouTube Player State Changed:", playerState);
 
     if (playerState === 1) {
       // 재생
+      console.log("YouTube Player: Playing");
       setIsPlaying(true);
       startProgressTracking();
     } else if (playerState === 2) {
       // 일시정지
+      console.log("YouTube Player: Paused");
       setIsPlaying(false);
       stopProgressTracking();
     } else if (playerState === 0) {
       // 종료
+      console.log("YouTube Player: Ended");
       handleVideoEnd();
     } else if (playerState === 3) {
       // 버퍼링
-      // 버퍼링 UI 표시 가능
+      console.log("YouTube Player: Buffering");
+      // 버퍼링 중에도 진행 상태는 계속 추적
+      if (!progressIntervalRef.current) {
+        startProgressTracking();
+      }
+    } else if (playerState === 5) {
+      // 큐 상태
+      console.log("YouTube Player: Video cued");
+    } else if (playerState === -1) {
+      // 초기화되지 않음
+      console.log("YouTube Player: Unstarted");
+      // 초기화가 안됐을 경우 다시 시도
+      if (playerRef.current) {
+        setTimeout(() => {
+          try {
+            playerRef.current?.playVideo();
+          } catch (e) {
+            console.error("재생 시도 중 오류:", e);
+          }
+        }, 1000);
+      }
     }
 
     // 영상 길이 가져오기
     if (playerRef.current && playerState !== -1) {
-      setDuration(playerRef.current.getDuration());
+      try {
+        const videoDuration = playerRef.current.getDuration();
+        if (videoDuration && videoDuration > 0) {
+          setDuration(videoDuration);
+        }
+      } catch (e) {
+        console.error("영상 길이 가져오기 오류:", e);
+      }
     }
   };
 
@@ -404,12 +449,20 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       e.stopPropagation();
     }
 
-    if (!playerRef.current) return;
+    if (!playerRef.current) {
+      console.log("Player reference not available");
+      return;
+    }
 
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-    } else {
-      playerRef.current.playVideo();
+    console.log("Toggle Play/Pause, current state:", isPlaying);
+    try {
+      if (isPlaying) {
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+      }
+    } catch (error) {
+      console.error("재생/일시정지 전환 중 오류:", error);
     }
   };
 
@@ -515,14 +568,43 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // 현재 비디오 변경 시 처리
   useEffect(() => {
+    console.log("currentVideo changed:", currentVideo?.title);
     setCurrentTime(0);
     setVideoViews("");
 
     if (currentVideo) {
       setIsPlaying(true);
+
+      // 현재 플레이어가 있고 다른 비디오 재생 중인 경우
+      if (playerRef.current) {
+        try {
+          // 플레이어가 이미 로드된 경우 새 비디오 로드
+          const currentVideoId = playerRef.current.getVideoData()?.video_id;
+          if (currentVideoId !== currentVideo.id) {
+            console.log("Loading new video:", currentVideo.id);
+            playerRef.current.loadVideoById(currentVideo.id);
+          } else {
+            // 같은 비디오면 처음부터 재생
+            console.log("Restarting current video");
+            playerRef.current.seekTo(0, true);
+            playerRef.current.playVideo();
+          }
+        } catch (error) {
+          console.error("비디오 변경 중 오류:", error);
+        }
+      }
     } else {
       setIsPlaying(false);
       stopProgressTracking();
+
+      // 비디오가 없으면 플레이어 정지
+      if (playerRef.current) {
+        try {
+          playerRef.current.stopVideo();
+        } catch (error) {
+          console.error("비디오 정지 중 오류:", error);
+        }
+      }
     }
   }, [currentVideo]);
 
@@ -681,13 +763,14 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
           position: "fixed",
           left: 0,
           top: 0,
-          width: isMobileDevice ? "100%" : "1px",
-          height: isMobileDevice ? "auto" : "1px",
-          opacity: isMobileDevice ? 1 : 0.01,
-          pointerEvents: isMobileDevice ? "auto" : "none",
-          zIndex: isMobileDevice ? 1000 : -1,
-          display: !currentVideo ? "none" : "block",
+          width: "1px",
+          height: "1px",
+          opacity: 0.01,
+          pointerEvents: "none",
+          zIndex: 0,
+          overflow: "hidden",
         }}
+        className="youtube-player-container"
       >
         {currentVideo && (
           <YouTube
