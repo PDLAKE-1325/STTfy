@@ -17,6 +17,9 @@ import {
   SkipNext,
   VolumeUp,
   VolumeOff,
+  RepeatOne,
+  Repeat,
+  RepeatOneOn,
 } from "@mui/icons-material";
 import { Video } from "../types";
 import "../App.css";
@@ -41,6 +44,8 @@ export const NowPlayingContent: React.FC<{
   hasPreviousTrack: boolean;
   needsUserInteraction?: boolean;
   attemptUnmute?: () => void;
+  repeatMode?: "none" | "one" | "all";
+  onRepeatModeChange?: (mode: "none" | "one" | "all") => void;
 }> = ({
   currentVideo,
   isPlaying,
@@ -60,8 +65,24 @@ export const NowPlayingContent: React.FC<{
   hasPreviousTrack,
   needsUserInteraction,
   attemptUnmute,
+  repeatMode = "none",
+  onRepeatModeChange,
 }) => {
   if (!currentVideo) return null;
+
+  // 반복 모드 전환 함수
+  const handleToggleRepeat = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRepeatModeChange) {
+      if (repeatMode === "none") {
+        onRepeatModeChange("all");
+      } else if (repeatMode === "all") {
+        onRepeatModeChange("one");
+      } else {
+        onRepeatModeChange("none");
+      }
+    }
+  };
 
   return (
     <Box
@@ -74,7 +95,7 @@ export const NowPlayingContent: React.FC<{
         pt: 0,
       }}
     >
-      {/* iOS 음소거 상태 알림 */}
+      {/* iOS 음소거 상태 알림 - iOS인 경우에만 표시 */}
       {needsUserInteraction && (
         <Box
           sx={{
@@ -229,40 +250,66 @@ export const NowPlayingContent: React.FC<{
         </IconButton>
       </Box>
 
-      {/* 볼륨 컨트롤 */}
+      {/* 반복 재생 및 볼륨 컨트롤 */}
       <Box
         sx={{
           display: "flex",
+          justifyContent: "center",
           alignItems: "center",
-          width: "80%",
-          maxWidth: 300,
-          position: "relative",
-          mb: 4,
+          width: "100%",
+          mb: 2,
+          gap: 2,
         }}
       >
+        {/* 반복 재생 버튼 */}
         <IconButton
-          onClick={(e) => {
-            onToggleMute(e);
-            attemptUnmute && attemptUnmute();
+          onClick={handleToggleRepeat}
+          sx={{
+            color: repeatMode !== "none" ? "#1db954" : "rgba(255,255,255,0.7)",
           }}
-          sx={{ color: "rgba(255,255,255,0.7)", mr: 1 }}
         >
-          {isMuted || volume === 0 ? <VolumeOff /> : <VolumeUp />}
+          {repeatMode === "one" ? (
+            <RepeatOneOn />
+          ) : repeatMode === "all" ? (
+            <Repeat sx={{ color: "#1db954" }} />
+          ) : (
+            <Repeat />
+          )}
         </IconButton>
 
-        <Slider
-          value={isMuted ? 0 : volume}
-          onChange={handleVolumeChange}
-          min={0}
-          max={100}
+        {/* 볼륨 컨트롤 */}
+        <Box
           sx={{
-            color: "#1db954",
-            "& .MuiSlider-thumb": {
-              width: 12,
-              height: 12,
-            },
+            display: "flex",
+            alignItems: "center",
+            width: "60%",
+            maxWidth: 200,
           }}
-        />
+        >
+          <IconButton
+            onClick={(e) => {
+              onToggleMute(e);
+              attemptUnmute && attemptUnmute();
+            }}
+            sx={{ color: "rgba(255,255,255,0.7)", mr: 1 }}
+          >
+            {isMuted || volume === 0 ? <VolumeOff /> : <VolumeUp />}
+          </IconButton>
+
+          <Slider
+            value={isMuted ? 0 : volume}
+            onChange={handleVolumeChange}
+            min={0}
+            max={100}
+            sx={{
+              color: "#1db954",
+              "& .MuiSlider-thumb": {
+                width: 12,
+                height: 12,
+              },
+            }}
+          />
+        </Box>
       </Box>
     </Box>
   );
@@ -354,6 +401,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   hasNextTrack = false,
   hasPreviousTrack = false,
   repeatMode = "none",
+  onRepeatModeChange,
   isMobile = false,
   onNavigateToNowPlaying,
 }) => {
@@ -735,7 +783,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     needsUserInteraction,
   ]);
 
-  // iOS 감지 함수 추가
+  // iOS가 아닌 경우에는 사용자 상호작용 필요 없이 자동 재생
   useEffect(() => {
     // iOS 디바이스 감지
     const detectIOS = () => {
@@ -745,44 +793,49 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
         (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 
       setIsIOS(isIOSDevice);
+      // iOS만 사용자 상호작용 필요
       setNeedsUserInteraction(isIOSDevice);
       console.log("iOS 디바이스 감지:", isIOSDevice);
     };
 
     detectIOS();
 
-    // iOS에서 사용자 상호작용 감지를 위한 이벤트 리스너
-    const handleUserInteraction = () => {
-      if (needsUserInteraction && !interactionRef.current) {
-        console.log("사용자 상호작용 감지됨, 오디오 활성화 시도");
-        interactionRef.current = true;
+    // iOS에서만 사용자 상호작용 감지를 위한 이벤트 리스너 추가
+    if (isIOS) {
+      const handleUserInteraction = () => {
+        if (needsUserInteraction && !interactionRef.current) {
+          console.log("사용자 상호작용 감지됨, 오디오 활성화 시도");
+          interactionRef.current = true;
 
-        // 플레이어가 준비되었으면 음소거 해제
-        if (playerRef.current) {
-          try {
-            playerRef.current.unMute();
-            playerRef.current.setVolume(volume);
-            setIsMuted(false);
-            setNeedsUserInteraction(false);
-          } catch (e) {
-            console.error("음소거 해제 중 오류:", e);
+          // 플레이어가 준비되었으면 음소거 해제
+          if (playerRef.current) {
+            try {
+              playerRef.current.unMute();
+              playerRef.current.setVolume(volume);
+              setIsMuted(false);
+              setNeedsUserInteraction(false);
+            } catch (e) {
+              console.error("음소거 해제 중 오류:", e);
+            }
           }
         }
-      }
-    };
+      };
 
-    // 다양한 사용자 상호작용 이벤트 리스닝
-    const interactionEvents = ["touchstart", "touchend", "click", "keydown"];
-    interactionEvents.forEach((event) => {
-      document.addEventListener(event, handleUserInteraction, { once: false });
-    });
-
-    return () => {
+      // 다양한 사용자 상호작용 이벤트 리스닝
+      const interactionEvents = ["touchstart", "touchend", "click", "keydown"];
       interactionEvents.forEach((event) => {
-        document.removeEventListener(event, handleUserInteraction);
+        document.addEventListener(event, handleUserInteraction, {
+          once: false,
+        });
       });
-    };
-  }, [needsUserInteraction, volume]);
+
+      return () => {
+        interactionEvents.forEach((event) => {
+          document.removeEventListener(event, handleUserInteraction);
+        });
+      };
+    }
+  }, [needsUserInteraction, volume, isIOS]);
 
   // 미니 플레이어 렌더링
   const renderMiniPlayer = () => {
@@ -847,7 +900,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
           </Box>
         </Box>
 
-        {/* iOS 음소거 상태 알림 */}
+        {/* iOS 음소거 상태 알림 - iOS인 경우에만 표시 */}
         {needsUserInteraction && (
           <Box
             sx={{
@@ -911,6 +964,36 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
             </Box>
           </Box>
 
+          {/* 반복 재생 버튼 */}
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onRepeatModeChange) {
+                if (repeatMode === "none") {
+                  onRepeatModeChange("all");
+                } else if (repeatMode === "all") {
+                  onRepeatModeChange("one");
+                } else {
+                  onRepeatModeChange("none");
+                }
+              }
+            }}
+            size="small"
+            sx={{
+              color:
+                repeatMode !== "none" ? "#1db954" : "rgba(255,255,255,0.5)",
+              mr: 1,
+            }}
+          >
+            {repeatMode === "one" ? (
+              <RepeatOneOn fontSize="small" />
+            ) : repeatMode === "all" ? (
+              <Repeat fontSize="small" sx={{ color: "#1db954" }} />
+            ) : (
+              <Repeat fontSize="small" />
+            )}
+          </IconButton>
+
           {/* 재생 버튼 */}
           <IconButton
             onClick={(e) => {
@@ -937,7 +1020,6 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
               "&:hover": { bgcolor: "#1ed760" },
               width: isMobileDevice ? 36 : 40,
               height: isMobileDevice ? 36 : 40,
-              ml: 1,
             }}
           >
             {isPlaying ? <Pause /> : <PlayArrow />}

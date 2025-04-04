@@ -1559,45 +1559,8 @@ function App() {
 
   // 음악 재생 탭 렌더링
   const renderNowPlayingTab = () => {
-    if (!currentVideo) {
-      return (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            height: "70vh",
-          }}
-        >
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-            재생 중인 음악이 없습니다
-          </Typography>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => setMainTabValue(0)}
-            startIcon={<HomeIcon />}
-          >
-            홈으로 이동
-          </Button>
-        </Box>
-      );
-    }
-
-    // 재생 중인 음악 탭 콘텐츠
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          p: 2,
-          width: "100%",
-          maxWidth: "100%",
-          overflow: "hidden",
-        }}
-      >
+      <Box sx={{ height: "100%", overflow: "auto", pt: 2 }}>
         <NowPlayingContent
           currentVideo={currentVideo}
           isPlaying={playerStateObj.isPlaying}
@@ -1610,19 +1573,15 @@ function App() {
           togglePlayPause={playerStateObj.togglePlayPause}
           handleVolumeChange={playerStateObj.handleVolumeChange}
           handleProgressChange={playerStateObj.handleProgressChange}
+          handlePrevious={handlePreviousTrack}
+          handleNext={handleNextTrack}
           formatTime={playerStateObj.formatTime}
           hasNextTrack={queue.length > 0}
           hasPreviousTrack={history.length > 0}
-          handlePrevious={(e) => {
-            e.stopPropagation();
-            handlePreviousTrack();
-          }}
-          handleNext={(e) => {
-            e.stopPropagation();
-            handleNextTrack();
-          }}
           needsUserInteraction={playerStateObj.needsUserInteraction}
           attemptUnmute={playerStateObj.attemptUnmute}
+          repeatMode={repeatMode}
+          onRepeatModeChange={handleToggleRepeatMode}
         />
       </Box>
     );
