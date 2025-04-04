@@ -1275,8 +1275,10 @@ function App() {
     showSnackbar("계정 데이터가 초기화되었습니다.", "success");
   };
 
-  // 모바일 화면 감지
-  const isMobile = useMediaQuery("(max-width:600px)");
+  // 모바일 화면 감지 - 윈도우 크기 기반 백업 로직 추가
+  const isMobile =
+    useMediaQuery("(max-width:600px)") ||
+    (typeof window !== "undefined" && window.innerWidth < 600);
 
   return (
     <ThemeProvider theme={darkTheme}>

@@ -11,6 +11,9 @@ import {
   Popover,
   useTheme,
   Tooltip,
+  Dialog,
+  DialogContent,
+  Paper,
 } from "@mui/material";
 import {
   PlayArrow,
@@ -23,6 +26,7 @@ import {
   RepeatOne,
   Shuffle,
   QueueMusic,
+  Visibility,
 } from "@mui/icons-material";
 import { Video } from "../types";
 
@@ -72,6 +76,31 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const theme = useTheme();
 
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // 모바일 상세 플레이어 다이얼로그 상태
+  const [showDetailPlayer, setShowDetailPlayer] = useState(false);
+  // 조회수 정보 (실제 구현에서는 API를 통해 가져옴)
+  const [viewCount, setViewCount] = useState<string>("");
+
+  // 조회수 포맷 함수
+  const formatNumber = (num: number): string => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + "M";
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + "K";
+    }
+    return num.toString();
+  };
+
+  // 현재 비디오가 변경되면 조회수 정보 가져오기 (랜덤 생성)
+  useEffect(() => {
+    if (currentVideo) {
+      // 실제 구현에서는 YouTube API 호출 필요
+      // 임의의 조회수 생성 (테스트용)
+      const randomViews = Math.floor(Math.random() * 10000000);
+      setViewCount(formatNumber(randomViews));
+    }
+  }, [currentVideo]);
 
   useEffect(() => {
     // 컴포넌트가 마운트되었을 때 이미 currentVideo가 있으면 진행 상황 추적 시작
@@ -279,10 +308,10 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   // 셔플 버튼 활성화 여부 판단
   const isShuffleDisabled = !isPlayingPlaylist;
 
-  // 모바일 화면에 맞는 YouTube 플레이어 옵션
+  // YouTube 플레이어 옵션 - 모바일 환경 고려
   const youtubeOpts = {
-    height: "0",
     width: "0",
+    height: "0",
     playerVars: {
       autoplay: 1,
       controls: 0,
@@ -290,7 +319,14 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       fs: 0,
       iv_load_policy: 3,
       modestbranding: 1,
+      rel: 0,
+      playsinline: 1, // 모바일에서 필요
     },
+  };
+
+  // 모바일 상세 플레이어 다이얼로그 토글
+  const toggleDetailPlayer = () => {
+    setShowDetailPlayer(!showDetailPlayer);
   };
 
   return (
@@ -315,6 +351,173 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
           />
         )}
       </div>
+
+      {/* 모바일 상세 플레이어 다이얼로그 */}
+      {isMobile && (
+        <Dialog
+          open={showDetailPlayer}
+          onClose={toggleDetailPlayer}
+          fullWidth
+          maxWidth="sm"
+          PaperProps={{
+            style: {
+              backgroundColor: "rgba(18, 18, 18, 0.95)",
+              borderRadius: "12px",
+            },
+          }}
+        >
+          <DialogContent>
+            <Box sx={{ textAlign: "center", py: 2 }}>
+              {currentVideo && (
+                <>
+                  <Box
+                    sx={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "center",
+                      mb: 3,
+                    }}
+                  >
+                    <Paper
+                      elevation={3}
+                      sx={{
+                        width: "240px",
+                        height: "240px",
+                        borderRadius: "8px",
+                        overflow: "hidden",
+                        position: "relative",
+                      }}
+                    >
+                      <CardMedia
+                        component="img"
+                        image={currentVideo.thumbnail}
+                        alt={currentVideo.title}
+                        sx={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </Paper>
+                  </Box>
+
+                  <Typography variant="h6" fontWeight="bold" gutterBottom>
+                    {currentVideo.title}
+                  </Typography>
+
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    {currentVideo.channelTitle}
+                  </Typography>
+
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      gap: 1,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Visibility fontSize="small" /> {viewCount} 조회수
+                  </Typography>
+
+                  <Box sx={{ mt: 3 }}>
+                    <Slider
+                      value={currentTime}
+                      max={duration}
+                      onChange={handleProgressChange}
+                      aria-label="progress"
+                      size="small"
+                      sx={{ mb: 1, color: "#00BFFF" }}
+                    />
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        px: 1,
+                        mb: 2,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        {formatTime(currentTime)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {formatTime(duration)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    justifyContent="center"
+                    alignItems="center"
+                  >
+                    <IconButton
+                      onClick={() =>
+                        onRepeatModeChange &&
+                        onRepeatModeChange(
+                          repeatMode === "none"
+                            ? "all"
+                            : repeatMode === "all"
+                            ? "one"
+                            : "none"
+                        )
+                      }
+                      color={repeatMode !== "none" ? "primary" : "default"}
+                    >
+                      {repeatMode === "one" ? <RepeatOne /> : <Repeat />}
+                    </IconButton>
+
+                    <IconButton
+                      onClick={onPrevious}
+                      disabled={
+                        !hasPreviousTrack && playbackHistory.length === 0
+                      }
+                    >
+                      <SkipPrevious />
+                    </IconButton>
+
+                    <IconButton
+                      onClick={togglePlayPause}
+                      sx={{
+                        bgcolor: "primary.main",
+                        color: "white",
+                        "&:hover": { bgcolor: "primary.dark" },
+                        width: 56,
+                        height: 56,
+                      }}
+                    >
+                      {isPlaying ? <Pause /> : <PlayArrow />}
+                    </IconButton>
+
+                    <IconButton
+                      onClick={onNext}
+                      disabled={queue.length === 0 && !hasNextTrack}
+                    >
+                      <SkipNext />
+                    </IconButton>
+
+                    <IconButton
+                      onClick={() =>
+                        onShuffleChange && onShuffleChange(!shuffleEnabled)
+                      }
+                      color={shuffleEnabled ? "primary" : "default"}
+                    >
+                      <Shuffle />
+                    </IconButton>
+                  </Stack>
+                </>
+              )}
+            </Box>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* 플레이어 UI */}
       {currentVideo && (
@@ -377,14 +580,16 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
             }}
             className={isMobile ? "mobile-player-controls" : ""}
           >
-            {/* Song Info */}
+            {/* Song Info - 모바일에서는 클릭하면 상세 플레이어 열림 */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
                 width: isMobile ? "40%" : "30%",
                 overflow: "hidden",
+                cursor: isMobile ? "pointer" : "default",
               }}
+              onClick={isMobile ? toggleDetailPlayer : undefined}
             >
               <CardMedia
                 component="img"

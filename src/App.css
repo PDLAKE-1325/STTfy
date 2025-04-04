@@ -195,6 +195,40 @@ body {
     min-height: 56px;
     padding: 6px 10px;
   }
+
+  /* 모바일 동영상 리스트 최적화 */
+  .mobile-content .album-art {
+    width: calc(50% - 8px) !important;
+    margin: 4px !important;
+    max-width: 200px;
+  }
+
+  .mobile-content .album-art img {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+  }
+
+  /* 모바일에서 이미지 크기 조정 */
+  .mobile-content [style*="width: 200px"] {
+    width: calc(50% - 8px) !important;
+    margin: 4px !important;
+  }
+
+  /* 리스트 항목 최적화 */
+  .mobile-content [style*="width: 120px"] {
+    width: 80px !important;
+  }
+
+  /* YouTube 플레이어가 모바일에서 제대로 동작하도록 */
+  .youtube-player {
+    position: fixed !important;
+    top: -9999px !important;
+    left: -9999px !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
 }
 
 .App {
