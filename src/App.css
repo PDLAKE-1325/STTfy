@@ -198,9 +198,12 @@ body {
 
   /* 모바일 동영상 리스트 최적화 */
   .mobile-content .album-art {
-    width: calc(100% - 16px) !important; /* 한 행에 하나만 표시 */
-    margin: 8px !important;
-    max-width: none;
+    width: calc(90% - 16px) !important; /* 박스 크기 키움 (50% → 90%) */
+    margin: 8px auto !important; /* 상하좌우 여백 늘리고 중앙 정렬 */
+    max-width: 320px; /* 최대 너비 증가 */
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   .mobile-content .album-art img {
@@ -210,17 +213,28 @@ body {
     object-fit: cover;
   }
 
-  /* 모바일에서 검색 결과 및 추천 음악 중앙 정렬 */
-  .mobile-content [style*="display: flex"][style*="flex-wrap: wrap"] {
-    display: flex !important;
-    justify-content: center !important;
-    flex-wrap: wrap !important;
+  /* 모바일에서 음악 리스트 항목 정보 영역 강화 */
+  .mobile-content .album-art .mobile-title {
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    margin-top: 8px !important;
+    padding: 0 8px !important;
+  }
+
+  .mobile-content .album-art .mobile-subtitle {
+    font-size: 14px !important;
+    padding: 0 8px !important;
+    margin-bottom: 8px !important;
   }
 
   /* 모바일에서 이미지 크기 조정 */
   .mobile-content [style*="width: 200px"] {
-    width: calc(100% - 16px) !important;
+    width: calc(90% - 16px) !important; /* 박스 크기 키움 (50% → 90%) */
     margin: 8px auto !important;
+    max-width: 320px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 
   /* 추천 음악, 검색 결과 그리드 중앙 정렬 */
@@ -231,21 +245,7 @@ body {
 
   /* 리스트 항목 최적화 */
   .mobile-content [style*="width: 120px"] {
-    width: 100px !important;
-  }
-
-  /* 재생 중인 음악 탭 스타일 */
-  .now-playing-tab {
-    padding: 12px !important;
-  }
-
-  .now-playing-cover {
-    width: 100% !important;
-    max-width: 300px !important;
-    margin: 0 auto 16px auto !important;
-    border-radius: 8px !important;
-    overflow: hidden !important;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
+    width: 80px !important;
   }
 
   /* YouTube 플레이어가 모바일에서 제대로 동작하도록 */

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ThemeProvider,
   createTheme,
@@ -27,7 +27,6 @@ import {
   DialogContent,
   DialogActions,
   useMediaQuery,
-  Stack,
 } from "@mui/material";
 import { HashRouter as Router } from "react-router-dom";
 import {
@@ -39,8 +38,6 @@ import {
   Download as DownloadIcon,
   Home as HomeIcon,
   Delete as DeleteIcon,
-  PlayArrow,
-  SkipNext,
 } from "@mui/icons-material";
 import { Video, Playlist } from "./types";
 import Search from "./components/Search";
@@ -1387,258 +1384,6 @@ function App() {
     useMediaQuery("(max-width:600px)") ||
     (typeof window !== "undefined" && window.innerWidth < 600);
 
-  // MusicPlayer 컴포넌트 참조를 통해 재생 제어
-  const musicPlayerRef = React.useRef<any>(null);
-  const playerRef = React.useRef<any>(null);
-
-  // 현재 재생 상태 가져오기
-  const isVideoPlaying = useMemo(() => {
-    if (musicPlayerRef.current) {
-      return musicPlayerRef.current.getPlayingState();
-    }
-    return false;
-  }, [currentVideo]);
-
-  // 음악 재생/일시정지 토글
-  const togglePlayPause = () => {
-    if (musicPlayerRef.current) {
-      if (isVideoPlaying) {
-        musicPlayerRef.current.pauseVideo();
-      } else {
-        musicPlayerRef.current.playVideo();
-      }
-    }
-  };
-
-  // playerRef 업데이트
-  useEffect(() => {
-    if (musicPlayerRef.current) {
-      playerRef.current = musicPlayerRef.current.getCurrentPlayer();
-    }
-  }, [currentVideo, isVideoPlaying]);
-
-  // 현재 재생 중인 음악 탭 렌더링
-  const renderNowPlayingTab = () => {
-    if (!currentVideo) {
-      return (
-        <Box sx={{ p: 3, textAlign: "center" }}>
-          <Typography variant="body1" color="text.secondary">
-            현재 재생 중인 음악이 없습니다.
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            sx={{ mt: 2 }}
-            onClick={() => setMainTabValue(0)}
-          >
-            음악 찾기
-          </Button>
-        </Box>
-      );
-    }
-
-    // 현재 재생 중인 음악을 제외한 최대 10개의 추천 음악
-    const nowPlayingSimilarVideos =
-      recommendedVideos.length > 0
-        ? recommendedVideos
-            .filter((video) => video.id !== currentVideo.id)
-            .slice(0, 10)
-        : [];
-
-    return (
-      <Box className="now-playing-tab">
-        {/* 현재 재생 중인 음악 */}
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: "center",
-            mb: 4,
-            p: 2,
-            borderRadius: 2,
-            bgcolor: "rgba(255, 255, 255, 0.05)",
-          }}
-        >
-          <Box
-            className="now-playing-cover"
-            sx={{
-              width: isMobile ? "80%" : "300px",
-              height: isMobile ? "auto" : "300px",
-              marginRight: isMobile ? 0 : 3,
-              marginBottom: isMobile ? 2 : 0,
-              borderRadius: 2,
-              overflow: "hidden",
-              boxShadow: 3,
-              position: "relative",
-            }}
-          >
-            <img
-              src={currentVideo.thumbnail}
-              alt={currentVideo.title}
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                aspectRatio: isMobile ? "16/9" : "1/1",
-              }}
-            />
-            <Box
-              sx={{
-                position: "absolute",
-                top: 10,
-                left: 10,
-                bgcolor: "primary.main",
-                color: "white",
-                px: 1,
-                py: 0.5,
-                borderRadius: 1,
-                fontSize: "0.75rem",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <PlayArrow sx={{ mr: 0.5, fontSize: "1rem" }} />
-              재생 중
-            </Box>
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              flex: 1,
-              alignSelf: isMobile ? "center" : "flex-start",
-              textAlign: isMobile ? "center" : "left",
-            }}
-          >
-            <Typography variant="h5" gutterBottom fontWeight="bold">
-              {currentVideo.title}
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              {currentVideo.channelTitle}
-            </Typography>
-            <Stack
-              direction="row"
-              spacing={1}
-              mt={2}
-              justifyContent={isMobile ? "center" : "flex-start"}
-            >
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<PlayArrow />}
-                onClick={togglePlayPause}
-              >
-                {isVideoPlaying ? "일시정지" : "재생"}
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<SkipNext />}
-                onClick={handleNextTrack}
-                disabled={queue.length === 0 && !hasNextTrack}
-              >
-                다음 곡
-              </Button>
-              <IconButton onClick={toggleQueue} color="primary">
-                <QueueMusic />
-              </IconButton>
-            </Stack>
-          </Box>
-        </Box>
-
-        {/* 관련 곡 추천 */}
-        {nowPlayingSimilarVideos.length > 0 && (
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              관련 음악 추천
-            </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                gap: 2,
-                justifyContent: isMobile ? "center" : "flex-start",
-              }}
-            >
-              {nowPlayingSimilarVideos.map((video) => (
-                <Box
-                  key={video.id}
-                  sx={{
-                    width: isMobile ? "calc(100% - 16px)" : 200,
-                    cursor: "pointer",
-                    "&:hover": { opacity: 0.8 },
-                    transition: "opacity 0.2s",
-                    position: "relative",
-                  }}
-                  className={`album-art ${
-                    isVideoDownloaded(video.id) ? "saved-music" : ""
-                  }`}
-                >
-                  <Box
-                    onClick={() => handleVideoPlay(video)}
-                    sx={{ width: "100%" }}
-                  >
-                    <img
-                      src={video.thumbnail}
-                      alt={video.title}
-                      style={{
-                        width: "100%",
-                        borderRadius: 4,
-                        aspectRatio: "16/9",
-                        objectFit: "cover",
-                      }}
-                    />
-                    <Typography
-                      variant={isMobile ? "body1" : "body2"}
-                      noWrap
-                      sx={{ mt: 1 }}
-                      className={isMobile ? "mobile-title" : ""}
-                    >
-                      {video.title}
-                    </Typography>
-                    <Typography
-                      variant={isMobile ? "body2" : "caption"}
-                      color="text.secondary"
-                      className={isMobile ? "mobile-subtitle" : ""}
-                    >
-                      {video.channelTitle}
-                    </Typography>
-
-                    {isVideoDownloaded(video.id) && (
-                      <Box sx={{ position: "absolute", top: 5, left: 5 }}>
-                        <DownloadIcon
-                          fontSize="small"
-                          sx={{ color: "#00BFFF" }}
-                        />
-                      </Box>
-                    )}
-                  </Box>
-
-                  {!isOffline && !isVideoDownloaded(video.id) && (
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDownloadVideo(video)}
-                      sx={{
-                        position: "absolute",
-                        top: 5,
-                        right: 5,
-                        bgcolor: "rgba(0,0,0,0.7)",
-                        "&:hover": { bgcolor: "rgba(0,0,0,0.9)" },
-                      }}
-                      className="download-btn"
-                    >
-                      <DownloadIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                </Box>
-              ))}
-            </Box>
-          </Box>
-        )}
-      </Box>
-    );
-  };
-
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
@@ -1786,11 +1531,6 @@ function App() {
                   <Tab icon={<HistoryIcon />} label="기록" />
                   <Tab icon={<LibraryMusic />} label="플레이리스트" />
                   <Tab icon={<DownloadIcon />} label="저장됨" />
-                  <Tab
-                    icon={<PlayArrow />}
-                    label="재생 중"
-                    disabled={!currentVideo}
-                  />
                 </Tabs>
 
                 <Box sx={{ p: 3 }}>
@@ -1798,7 +1538,6 @@ function App() {
                   {mainTabValue === 1 && renderHistoryTab()}
                   {mainTabValue === 2 && renderPlaylistsTab()}
                   {mainTabValue === 3 && renderDownloadsTab()}
-                  {mainTabValue === 4 && renderNowPlayingTab()}
                 </Box>
               </Paper>
             )}
@@ -1811,7 +1550,6 @@ function App() {
                   {mainTabValue === 1 && renderHistoryTab()}
                   {mainTabValue === 2 && renderPlaylistsTab()}
                   {mainTabValue === 3 && renderDownloadsTab()}
-                  {mainTabValue === 4 && renderNowPlayingTab()}
                 </Box>
 
                 <Paper elevation={3} className="mobile-bottom-tabs">
@@ -1831,15 +1569,6 @@ function App() {
                       aria-label="플레이리스트"
                     />
                     <Tab icon={<DownloadIcon />} label="" aria-label="저장됨" />
-                    <Tab
-                      icon={<PlayArrow />}
-                      label=""
-                      aria-label="재생 중"
-                      disabled={!currentVideo}
-                      sx={{
-                        color: currentVideo ? "primary.main" : "text.disabled",
-                      }}
-                    />
                   </Tabs>
                 </Paper>
               </>
@@ -1929,31 +1658,23 @@ function App() {
             </Alert>
           </Snackbar>
 
-          {/* 음악 플레이어 */}
-          {currentVideo && (
-            <Box className="music-player-container">
-              <MusicPlayer
-                ref={musicPlayerRef}
-                currentVideo={currentVideo}
-                queue={queue}
-                onPrevious={handlePreviousTrack}
-                onNext={handleNextTrack}
-                onQueueUpdate={setQueue}
-                onToggleQueue={toggleQueue}
-                playbackHistory={playbackStack}
-                isPlayingPlaylist={Boolean(
-                  currentPlaylistId || isPlayingPlaylist
-                )}
-                hasNextTrack={hasNextTrack}
-                hasPreviousTrack={hasPreviousTrack}
-                repeatMode={repeatMode}
-                onRepeatModeChange={setRepeatMode}
-                shuffleEnabled={shuffleEnabled}
-                onShuffleChange={handleShuffleChange}
-                isMobile={isMobile}
-              />
-            </Box>
-          )}
+          <MusicPlayer
+            currentVideo={currentVideo}
+            queue={queue}
+            onPrevious={handlePreviousTrack}
+            onNext={handleNextTrack}
+            onQueueUpdate={setQueue}
+            onToggleQueue={toggleQueue}
+            playbackHistory={playbackStack}
+            isPlayingPlaylist={isPlayingPlaylist}
+            hasNextTrack={hasNextTrack}
+            hasPreviousTrack={hasPreviousTrack}
+            repeatMode={repeatMode}
+            onRepeatModeChange={setRepeatMode}
+            shuffleEnabled={shuffleEnabled}
+            onShuffleChange={handleShuffleChange}
+            isMobile={isMobile}
+          />
 
           {isOffline && (
             <Box className="offline-indicator">
