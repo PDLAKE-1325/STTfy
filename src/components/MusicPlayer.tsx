@@ -139,8 +139,12 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     // Set initial volume
     event.target.setVolume(volume);
 
-    // Auto play when ready
-    event.target.playVideo();
+    // Auto play when ready (모바일에서는 사용자 상호작용이 필요할 수 있음)
+    try {
+      event.target.playVideo();
+    } catch (error) {
+      console.error("재생 시작 오류:", error);
+    }
 
     // Start tracking progress
     startProgressTracking();
@@ -310,8 +314,8 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // YouTube 플레이어 옵션 - 모바일 환경 고려
   const youtubeOpts = {
-    width: "0",
-    height: "0",
+    width: "1",
+    height: "1",
     playerVars: {
       autoplay: 1,
       controls: 0,
@@ -321,6 +325,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       modestbranding: 1,
       rel: 0,
       playsinline: 1, // 모바일에서 필요
+      mute: isMobile ? 1 : 0, // 모바일에서 자동 재생을 위해 초기에 음소거
     },
   };
 

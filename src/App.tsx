@@ -801,12 +801,20 @@ function App() {
         <Typography variant="h6" sx={{ mb: 2 }}>
           {title}
         </Typography>
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 2,
+            justifyContent: isMobile ? "center" : "flex-start",
+          }}
+          className="music-grid-container"
+        >
           {filteredVideos.map((video) => (
             <Box
               key={video.id}
               sx={{
-                width: 200,
+                width: isMobile ? "calc(50% - 8px)" : 200,
                 cursor: "pointer",
                 "&:hover": { opacity: 0.8 },
                 transition: "opacity 0.2s",
@@ -823,12 +831,26 @@ function App() {
                 <img
                   src={video.thumbnail}
                   alt={video.title}
-                  style={{ width: "100%", borderRadius: 4 }}
+                  style={{
+                    width: "100%",
+                    borderRadius: 4,
+                    aspectRatio: "16/9",
+                    objectFit: "cover",
+                  }}
                 />
-                <Typography variant="body2" noWrap sx={{ mt: 1 }}>
+                <Typography
+                  variant={isMobile ? "body2" : "body1"}
+                  noWrap
+                  sx={{ mt: 1 }}
+                  className={isMobile ? "mobile-title" : ""}
+                >
                   {video.title}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
+                <Typography
+                  variant={isMobile ? "caption" : "body2"}
+                  color="text.secondary"
+                  className={isMobile ? "mobile-subtitle" : ""}
+                >
                   {video.channelTitle}
                 </Typography>
 
@@ -932,102 +954,151 @@ function App() {
   };
 
   const renderHistoryTab = () => {
-    if (!user) {
-      return (
-        <Box sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-            시청 기록을 보려면 로그인이 필요합니다.
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setIsLoginDialogOpen(true)}
-          >
-            로그인
-          </Button>
-        </Box>
-      );
-    }
-
     if (history.length === 0) {
       return (
-        <Box sx={{ p: 4, textAlign: "center" }}>
+        <Box sx={{ p: 3, textAlign: "center" }}>
           <Typography variant="body1" color="text.secondary">
-            아직 재생 기록이 없습니다.
+            아직 시청 기록이 없습니다.
           </Typography>
         </Box>
       );
     }
 
-    // 시간 기준으로 정렬 (최신순)
+    // 날짜별로 그룹화
+    const groupedHistory: Record<string, Video[]> = {};
+
+    // 가장 최근에 본 순서로 정렬
     const sortedHistory = [...history].sort(
       (a, b) => (b.viewedAt || 0) - (a.viewedAt || 0)
     );
 
+    // 오늘, 어제, 이번 주, 이전 형태로 그룹화
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const thisWeek = new Date(today);
+    thisWeek.setDate(thisWeek.getDate() - today.getDay());
+
+    sortedHistory.forEach((video) => {
+      if (!video.viewedAt) return;
+
+      const viewDate = new Date(video.viewedAt);
+      viewDate.setHours(0, 0, 0, 0);
+
+      let group = "이전";
+
+      if (viewDate.getTime() === today.getTime()) {
+        group = "오늘";
+      } else if (viewDate.getTime() === yesterday.getTime()) {
+        group = "어제";
+      } else if (viewDate > thisWeek) {
+        group = "이번 주";
+      }
+
+      if (!groupedHistory[group]) {
+        groupedHistory[group] = [];
+      }
+      groupedHistory[group].push(video);
+    });
+
     return (
-      <List sx={{ width: "100%" }}>
-        {sortedHistory.map((video, index) => (
-          <Box
-            key={`${video.id}-${index}`}
-            sx={{
-              display: "flex",
-              p: 1,
-              borderBottom: "1px solid rgba(255,255,255,0.1)",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
-            }}
-          >
-            <Box
-              sx={{
-                display: "flex",
-                flex: 1,
-                alignItems: "center",
-                cursor: "pointer",
-              }}
-              onClick={() => handleVideoSelect(video)}
-            >
-              <Box sx={{ width: 120, flexShrink: 0, mr: 2 }}>
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
-                  style={{ width: "100%", borderRadius: 4 }}
-                />
-              </Box>
-              <Box sx={{ flex: 1, overflow: "hidden" }}>
-                <Typography variant="body1" noWrap>
-                  {video.title}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  {video.channelTitle}
-                </Typography>
-                {video.viewedAt && (
-                  <Typography variant="caption" color="text.secondary">
-                    {new Date(video.viewedAt).toLocaleDateString("ko-KR", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </Typography>
-                )}
-              </Box>
-            </Box>
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <IconButton
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveFromHistory(video.id);
-                }}
-                color="error"
-                size="small"
-                title="시청 기록에서 삭제"
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Box>
+      <Box>
+        {Object.entries(groupedHistory).map(([date, videos]) => (
+          <Box key={date} sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              {date}
+            </Typography>
+            <List sx={{ width: "100%" }}>
+              {videos.map((video, index) => (
+                <Box
+                  key={`${video.id}-${index}`}
+                  sx={{
+                    display: "flex",
+                    p: isMobile ? 0.8 : 1,
+                    borderBottom: "1px solid rgba(255,255,255,0.1)",
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flex: 1,
+                      alignItems: "center",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => handleVideoSelect(video)}
+                  >
+                    <Box
+                      sx={{
+                        width: isMobile ? 80 : 120,
+                        flexShrink: 0,
+                        mr: isMobile ? 1 : 2,
+                      }}
+                      className={isMobile ? "mobile-thumbnail" : ""}
+                    >
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        style={{
+                          width: "100%",
+                          borderRadius: 4,
+                          aspectRatio: "16/9",
+                          objectFit: "cover",
+                        }}
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1, overflow: "hidden" }}>
+                      <Typography
+                        variant={isMobile ? "body2" : "body1"}
+                        noWrap
+                        className={isMobile ? "mobile-title" : ""}
+                      >
+                        {video.title}
+                      </Typography>
+                      <Typography
+                        variant={isMobile ? "caption" : "body2"}
+                        color="text.secondary"
+                        noWrap
+                        className={isMobile ? "mobile-subtitle" : ""}
+                      >
+                        {video.channelTitle}
+                      </Typography>
+                      {video.viewedAt && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: isMobile ? "10px" : "inherit" }}
+                        >
+                          {new Date(video.viewedAt).toLocaleDateString(
+                            "ko-KR",
+                            {
+                              year: "numeric",
+                              month: "long",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <IconButton
+                      size={isMobile ? "small" : "medium"}
+                      onClick={() => handleRemoveFromHistory(video.id)}
+                      edge="end"
+                    >
+                      <DeleteIcon fontSize={isMobile ? "small" : "medium"} />
+                    </IconButton>
+                  </Box>
+                </Box>
+              ))}
+            </List>
           </Box>
         ))}
-      </List>
+      </Box>
     );
   };
 
@@ -1093,42 +1164,26 @@ function App() {
   };
 
   const renderDownloadsTab = () => {
-    if (!user) {
-      return (
-        <Box sx={{ p: 4, textAlign: "center" }}>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-            저장한 음악을 이용하려면 로그인이 필요합니다.
-          </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setIsLoginDialogOpen(true)}
-          >
-            로그인
-          </Button>
-        </Box>
-      );
-    }
-
     if (downloadedVideos.length === 0) {
       return (
-        <Box sx={{ p: 4, textAlign: "center" }}>
+        <Box sx={{ p: 3, textAlign: "center" }}>
           <Typography variant="body1" color="text.secondary">
-            저장된 음악이 없습니다. 음악을 저장하려면 음악 항목의 다운로드
-            아이콘을 클릭하세요.
+            저장된 음악이 없습니다. 음악을 다운로드하면 오프라인에서도 재생할 수
+            있습니다.
           </Typography>
         </Box>
       );
     }
 
-    // 현재 기기에서 다운로드한 음악만 필터링
+    // 현재 기기에 다운로드된 음악만 필터링
+    const currentUserAgent = navigator.userAgent;
     const currentDeviceDownloads = downloadedVideos.filter(
-      (video) => video.deviceId === navigator.userAgent
+      (video) => video.deviceId === currentUserAgent
     );
 
-    // 다른 기기에서 다운로드한 음악 필터링
+    // 다른 기기에 다운로드된 음악 필터링
     const otherDeviceDownloads = downloadedVideos.filter(
-      (video) => video.deviceId !== navigator.userAgent
+      (video) => video.deviceId !== currentUserAgent
     );
 
     return (
@@ -1144,7 +1199,7 @@ function App() {
                   key={video.id}
                   sx={{
                     display: "flex",
-                    p: 1,
+                    p: isMobile ? 0.8 : 1,
                     borderBottom: "1px solid rgba(255,255,255,0.1)",
                     "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
                   }}
@@ -1158,32 +1213,60 @@ function App() {
                     }}
                     onClick={() => handleVideoSelect(video)}
                   >
-                    <Box sx={{ width: 120, flexShrink: 0, mr: 2 }}>
+                    <Box
+                      sx={{
+                        width: isMobile ? 80 : 120,
+                        flexShrink: 0,
+                        mr: isMobile ? 1 : 2,
+                      }}
+                      className={isMobile ? "mobile-thumbnail" : ""}
+                    >
                       <img
                         src={video.thumbnail}
                         alt={video.title}
-                        style={{ width: "100%", borderRadius: 4 }}
+                        style={{
+                          width: "100%",
+                          borderRadius: 4,
+                          aspectRatio: "16/9",
+                          objectFit: "cover",
+                        }}
                       />
                     </Box>
                     <Box sx={{ flex: 1, overflow: "hidden" }}>
-                      <Typography variant="body1" noWrap>
+                      <Typography
+                        variant={isMobile ? "body2" : "body1"}
+                        noWrap
+                        className={isMobile ? "mobile-title" : ""}
+                      >
                         {video.title}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" noWrap>
+                      <Typography
+                        variant={isMobile ? "caption" : "body2"}
+                        color="text.secondary"
+                        noWrap
+                        className={isMobile ? "mobile-subtitle" : ""}
+                      >
                         {video.channelTitle}
                       </Typography>
+                      {video.downloadedAt && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ fontSize: isMobile ? "10px" : "inherit" }}
+                        >
+                          저장 날짜:{" "}
+                          {new Date(video.downloadedAt).toLocaleDateString()}
+                        </Typography>
+                      )}
                     </Box>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center" }}>
                     <IconButton
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveDownload(video.id);
-                      }}
-                      color="error"
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
+                      onClick={() => handleRemoveDownload(video.id)}
+                      edge="end"
                     >
-                      <DownloadIcon />
+                      <DeleteIcon fontSize={isMobile ? "small" : "medium"} />
                     </IconButton>
                   </Box>
                 </Box>
@@ -1203,7 +1286,7 @@ function App() {
                   key={video.id}
                   sx={{
                     display: "flex",
-                    p: 1,
+                    p: isMobile ? 0.8 : 1,
                     borderBottom: "1px solid rgba(255,255,255,0.1)",
                     "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
                   }}
@@ -1217,18 +1300,39 @@ function App() {
                     }}
                     onClick={() => handleVideoSelect(video)}
                   >
-                    <Box sx={{ width: 120, flexShrink: 0, mr: 2 }}>
+                    <Box
+                      sx={{
+                        width: isMobile ? 80 : 120,
+                        flexShrink: 0,
+                        mr: isMobile ? 1 : 2,
+                      }}
+                      className={isMobile ? "mobile-thumbnail" : ""}
+                    >
                       <img
                         src={video.thumbnail}
                         alt={video.title}
-                        style={{ width: "100%", borderRadius: 4 }}
+                        style={{
+                          width: "100%",
+                          borderRadius: 4,
+                          aspectRatio: "16/9",
+                          objectFit: "cover",
+                        }}
                       />
                     </Box>
                     <Box sx={{ flex: 1, overflow: "hidden" }}>
-                      <Typography variant="body1" noWrap>
+                      <Typography
+                        variant={isMobile ? "body2" : "body1"}
+                        noWrap
+                        className={isMobile ? "mobile-title" : ""}
+                      >
                         {video.title}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" noWrap>
+                      <Typography
+                        variant={isMobile ? "caption" : "body2"}
+                        color="text.secondary"
+                        noWrap
+                        className={isMobile ? "mobile-subtitle" : ""}
+                      >
                         {video.channelTitle}
                       </Typography>
                     </Box>
@@ -1237,7 +1341,7 @@ function App() {
                     <Button
                       startIcon={<DownloadIcon />}
                       variant="outlined"
-                      size="small"
+                      size={isMobile ? "small" : "medium"}
                       color="primary"
                       onClick={(e) => {
                         e.stopPropagation();
