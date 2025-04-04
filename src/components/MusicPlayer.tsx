@@ -133,34 +133,60 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   };
 
   const handleReady = (event: YouTubeEvent) => {
+    console.log("YouTube 플레이어 준비됨", event);
     setPlayer(event.target);
-    setDuration(event.target.getDuration());
 
-    // Set initial volume
-    event.target.setVolume(volume);
-
-    // Auto play when ready (모바일에서는 사용자 상호작용이 필요할 수 있음)
     try {
-      event.target.playVideo();
-    } catch (error) {
-      console.error("재생 시작 오류:", error);
-    }
+      // 재생 시간 설정
+      const duration = event.target.getDuration();
+      setDuration(duration || 0);
 
-    // Start tracking progress
-    startProgressTracking();
+      // 볼륨 설정 (초기에는 항상 음소거)
+      event.target.setVolume(0);
+      event.target.mute();
+      setIsMuted(true);
+
+      // 자동 재생 시작
+      setTimeout(() => {
+        event.target.playVideo();
+      }, 500);
+
+      // 진행 상황 추적 시작
+      startProgressTracking();
+    } catch (error) {
+      console.error("플레이어 초기화 오류:", error);
+    }
   };
 
   const handleStateChange = (event: YouTubeEvent) => {
+    console.log("YouTube 상태 변경:", event.data);
     const playerState = event.data;
 
     // PlayerState: -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
-    setIsPlaying(playerState === 1);
-
     if (playerState === 1) {
+      setIsPlaying(true);
       startProgressTracking();
+
+      // 모바일에서 첫 재생 시 저장된 볼륨으로 설정 (사용자 상호작용 후)
+      if (isMobile && player) {
+        // 볼륨은 나중에 unmutePlayer 함수에서 설정
+      }
+    } else if (playerState === 2) {
+      setIsPlaying(false);
     } else if (playerState === 0) {
       // Video ended
       handleVideoEnded();
+    } else if (playerState === -1) {
+      // 준비되지 않은 상태에서 다시 시도
+      if (player) {
+        setTimeout(() => {
+          try {
+            player.playVideo();
+          } catch (e) {
+            console.error("재생 재시도 오류:", e);
+          }
+        }, 1000);
+      }
     }
   };
 
@@ -314,8 +340,8 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // YouTube 플레이어 옵션 - 모바일 환경 고려
   const youtubeOpts = {
-    width: "1",
-    height: "1",
+    width: "200", // 크기를 더 크게 설정
+    height: "200", // 크기를 더 크게 설정
     playerVars: {
       autoplay: 1,
       controls: 0,
@@ -325,13 +351,39 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       modestbranding: 1,
       rel: 0,
       playsinline: 1, // 모바일에서 필요
-      mute: isMobile ? 1 : 0, // 모바일에서 자동 재생을 위해 초기에 음소거
+      mute: 1, // 모바일에서 자동 재생을 위해 항상 초기에 음소거
     },
   };
 
-  // 모바일 상세 플레이어 다이얼로그 토글
+  // 음소거 해제 함수 - 모바일에서 호출
+  const unmutePlayer = () => {
+    if (player) {
+      try {
+        player.unMute();
+        player.setVolume(isMobile ? 100 : volume);
+        setIsMuted(false);
+      } catch (error) {
+        console.error("음소거 해제 오류:", error);
+      }
+    }
+  };
+
+  // 사용자 상호작용을 감지하여 음소거 해제
+  useEffect(() => {
+    if (isPlaying && player && isMobile) {
+      // 사용자가 플레이어를 클릭하면 음소거 해제
+      setTimeout(() => {
+        unmutePlayer();
+      }, 1000);
+    }
+  }, [isPlaying, player, isMobile]);
+
+  // 모바일에서 상세 플레이어 클릭 시에도 음소거 해제
   const toggleDetailPlayer = () => {
     setShowDetailPlayer(!showDetailPlayer);
+    if (isMobile && player && isPlaying) {
+      unmutePlayer();
+    }
   };
 
   return (
@@ -344,8 +396,17 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
         onEnded={onEnded}
       />
 
-      {/* YouTube 컴포넌트 (눈에 보이지 않음, 백그라운드에서 동작) */}
-      <div style={{ position: "fixed", top: -9999, left: -9999 }}>
+      {/* YouTube 컴포넌트 */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          zIndex: -1,
+          opacity: 0.01,
+        }}
+        onClick={unmutePlayer}
+      >
         {currentVideo && (
           <YouTube
             videoId={currentVideo.id}
@@ -356,6 +417,33 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
           />
         )}
       </div>
+
+      {/* 음악 재생을 시작하기 위한 숨겨진 버튼 (모바일에서 필요) */}
+      {isMobile && !isPlaying && currentVideo && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 9999,
+            background: "rgba(0,0,0,0.8)",
+            borderRadius: "50%",
+            padding: "20px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            cursor: "pointer",
+            boxShadow: "0 0 20px rgba(0, 191, 255, 0.5)",
+          }}
+          onClick={() => {
+            togglePlayPause();
+            unmutePlayer();
+          }}
+        >
+          <PlayArrow style={{ fontSize: 60, color: "#00bfff" }} />
+        </div>
+      )}
 
       {/* 모바일 상세 플레이어 다이얼로그 */}
       {isMobile && (
