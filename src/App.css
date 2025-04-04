@@ -745,3 +745,416 @@ body {
     transform: translateX(-50%);
   }
 }
+
+/* 기본 스타일 (모바일 우선) */
+:root {
+  --primary-color: #1db954;
+  --primary-hover: #1ed760;
+  --dark-background: #121212;
+  --card-background: #181818;
+  --light-text: rgba(255, 255, 255, 0.9);
+  --secondary-text: rgba(255, 255, 255, 0.7);
+  --disabled-text: rgba(255, 255, 255, 0.5);
+  --border-radius: 8px;
+  --standard-spacing: 16px;
+  --mini-spacing: 8px;
+}
+
+body,
+html {
+  margin: 0;
+  padding: 0;
+  background-color: var(--dark-background);
+  color: var(--light-text);
+  font-family: "Circular", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 애니메이션 */
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* 레이아웃 */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 84px; /* 미니 플레이어 + 탭바 공간 */
+}
+
+/* 모바일 헤더 */
+.mobile-app-bar {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  transition: background-color 0.3s ease;
+}
+
+.mobile-toolbar {
+  padding: 12px 16px !important;
+  min-height: 56px !important;
+}
+
+/* 모바일 검색 컨테이너 */
+.mobile-search-container {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border-radius: 0 !important;
+  background-color: var(--dark-background) !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.mobile-search-field .MuiInputBase-root {
+  height: 40px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* 모바일 콘텐츠 */
+.mobile-content {
+  padding: 0 8px !important;
+  padding-bottom: 16px !important;
+  margin-top: 8px !important;
+}
+
+/* 모바일 카드 */
+.mobile-card {
+  border-radius: var(--border-radius) !important;
+  margin-bottom: 12px !important;
+  background-color: var(--card-background) !important;
+}
+
+/* 모바일 하단 탭 */
+.mobile-bottom-tabs {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 9 !important;
+  background-color: rgba(24, 24, 24, 0.97) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+.mobile-tabs .MuiTab-root {
+  min-height: 56px !important;
+  padding: 8px 0 !important;
+}
+
+.mobile-tabs .MuiTab-root .MuiSvgIcon-root {
+  margin-bottom: 0 !important;
+}
+
+.now-playing-tab .MuiSvgIcon-root {
+  animation: pulse 1.5s infinite;
+}
+
+/* 미니 플레이어 */
+.mini-player {
+  background-color: rgba(24, 24, 24, 0.97) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.progress-container {
+  width: 100%;
+  height: 2px;
+  cursor: pointer;
+}
+
+/* 앨범 그리드 */
+.music-grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.album-art {
+  transition: transform 0.2s ease;
+}
+
+.album-art:active {
+  transform: scale(0.98);
+}
+
+.album-art.now-playing {
+  position: relative;
+}
+
+.album-art.now-playing::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    transparent 75%,
+    var(--primary-color) 75%
+  );
+  pointer-events: none;
+  border-radius: var(--border-radius);
+}
+
+.saved-music {
+  position: relative;
+}
+
+.saved-music::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 18px;
+  height: 18px;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* 모바일 타이틀 및 텍스트 */
+.mobile-title {
+  font-size: 14px !important;
+  line-height: 1.3 !important;
+  margin-top: 6px !important;
+  font-weight: 500 !important;
+}
+
+.mobile-subtitle {
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+
+.mobile-thumbnail {
+  border-radius: var(--border-radius) !important;
+  overflow: hidden !important;
+}
+
+/* 재생 버튼 스타일 */
+.play-button {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.play-button:hover,
+.play-button:active {
+  background-color: var(--primary-hover) !important;
+  transform: scale(1.05) !important;
+}
+
+/* 재생 페이지 스타일 */
+.full-player-container {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.3),
+    var(--dark-background) 70%
+  );
+  padding: 16px;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 슬라이더 스타일 */
+.slider-container {
+  padding: 0 16px;
+  margin-bottom: 20px;
+}
+
+.volume-slider {
+  height: 100%;
+  color: var(--primary-color);
+}
+
+/* 터치 최적화 */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* 오프라인 상태 */
+.offline-indicator {
+  position: fixed;
+  bottom: 70px;
+  left: 0;
+  right: 0;
+  background-color: rgba(244, 67, 54, 0.9);
+  color: white;
+  text-align: center;
+  padding: 8px;
+  font-size: 14px;
+  z-index: 8;
+}
+
+/* 재생 대기열 */
+.queue-container {
+  padding: 16px;
+  height: 100%;
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 8px;
+  border-radius: var(--border-radius);
+  margin-bottom: 8px;
+}
+
+.queue-item:active {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* 로딩 애니메이션 */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100px;
+}
+
+/* 태블릿 및 데스크톱 화면 조정 */
+@media (min-width: 600px) {
+  .app-container {
+    padding-bottom: 72px; /* 미니 플레이어만 있고 탭바 없음 */
+  }
+
+  .music-grid-container {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .mobile-title {
+    font-size: 16px !important;
+  }
+
+  .mobile-subtitle {
+    font-size: 14px !important;
+  }
+
+  .mobile-content {
+    padding: 0 16px !important;
+    padding-bottom: 24px !important;
+  }
+}
+
+/* 큰 화면에서 콘텐츠 최대 너비 제한 */
+@media (min-width: 1200px) {
+  .music-grid-container {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* 다크 모드 최적화 (OLED) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --dark-background: #000000;
+    --card-background: #121212;
+  }
+}
+
+/* 터치 제스처 최적화 */
+.swipeable-drawer .MuiPaper-root {
+  touch-action: none;
+}
+
+/* 앱 설치 버튼 */
+.install-button {
+  padding: 8px 16px;
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 장르 카드 */
+.genre-card {
+  position: relative;
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  height: 100px;
+  transition: transform 0.2s ease;
+}
+
+.genre-card:active {
+  transform: scale(0.98);
+}
+
+.genre-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.3),
+    rgba(0, 0, 0, 0.7)
+  );
+}
+
+.genre-text {
+  position: relative;
+  z-index: 1;
+  color: white;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}

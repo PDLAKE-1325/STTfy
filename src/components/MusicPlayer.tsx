@@ -2,17 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import YouTube, { YouTubePlayer, YouTubeEvent } from "react-youtube";
 import {
   Box,
-  Card,
-  Typography,
   IconButton,
   Slider,
-  Stack,
-  Drawer,
+  Typography,
+  SwipeableDrawer,
   useTheme,
-  Avatar,
-  LinearProgress,
-  Container,
   useMediaQuery,
+  Paper,
 } from "@mui/material";
 import {
   PlayArrow,
@@ -25,10 +21,10 @@ import {
   RepeatOne,
   Shuffle,
   QueueMusic,
-  ExpandLess,
-  ExpandMore,
+  KeyboardArrowDown,
 } from "@mui/icons-material";
 import { Video } from "../types";
+import "../App.css";
 
 interface MusicPlayerProps {
   currentVideo: Video | null;
@@ -65,55 +61,54 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   onShuffleChange,
   isMobile = false,
 }) => {
-  // 플레이어 상태
+  // 상태 변수들
   const [isPlaying, setIsPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState(70);
   const [isMuted, setIsMuted] = useState(false);
-  const [playerReady, setPlayerReady] = useState(false);
   const [fullPlayerOpen, setFullPlayerOpen] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
   // 플레이어 참조
   const playerRef = useRef<YouTubePlayer | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 모바일 화면 확인
+  // 모바일 여부 확인
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery(theme.breakpoints.down("sm")) || isMobile;
+  const isMobileDevice =
+    useMediaQuery(theme.breakpoints.down("sm")) || isMobile;
 
   // YouTube 플레이어 옵션
   const youtubeOpts = {
-    height: isSmallScreen ? "0" : "0",
-    width: isSmallScreen ? "0" : "0",
+    height: "0",
+    width: "0",
     playerVars: {
       autoplay: 1,
       controls: 0,
-      mute: 0, // 음소거 해제
+      mute: 0,
       disablekb: 1,
       fs: 0,
       modestbranding: 1,
       rel: 0,
-      playsinline: 1, // 모바일에서 필요
+      playsinline: 1,
     },
   };
 
   // 플레이어 준비 완료 핸들러
   const handleReady = (event: YouTubeEvent) => {
     playerRef.current = event.target;
-    setPlayerReady(true);
 
-    // 볼륨 설정 및 즉시 재생
     if (playerRef.current) {
       playerRef.current.setVolume(volume);
-
-      // 음소거 해제 및 재생 시작
       playerRef.current.unMute();
       setIsMuted(false);
+      setIsPlaying(true);
       playerRef.current.playVideo();
-
-      // 진행 상태 추적 시작
       startProgressTracking();
+
+      // 영상 길이 설정
+      setDuration(playerRef.current.getDuration());
     }
   };
 
@@ -121,7 +116,6 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const handleStateChange = (event: YouTubeEvent) => {
     const playerState = event.data;
 
-    // 재생 상태 업데이트
     if (playerState === 1) {
       // 재생
       setIsPlaying(true);
@@ -135,7 +129,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
       handleVideoEnd();
     } else if (playerState === 3) {
       // 버퍼링
-      setIsPlaying(false);
+      // 버퍼링 UI 표시 가능
     }
 
     // 영상 길이 가져오기
@@ -146,27 +140,25 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // 재생/일시정지 토글
   const togglePlayPause = () => {
-    if (playerRef.current) {
-      if (isPlaying) {
-        playerRef.current.pauseVideo();
-      } else {
-        playerRef.current.playVideo();
-      }
+    if (!playerRef.current) return;
+
+    if (isPlaying) {
+      playerRef.current.pauseVideo();
+    } else {
+      playerRef.current.playVideo();
     }
   };
 
   // 진행 상태 추적 시작
   const startProgressTracking = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
+    stopProgressTracking();
 
     progressIntervalRef.current = setInterval(() => {
       if (playerRef.current && isPlaying) {
-        const currentTime = playerRef.current.getCurrentTime();
-        setCurrentTime(currentTime);
+        const time = playerRef.current.getCurrentTime();
+        setCurrentTime(time);
       }
-    }, 1000);
+    }, 500);
   };
 
   // 진행 상태 추적 중지
@@ -177,7 +169,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     }
   };
 
-  // 볼륨 변경 핸들러
+  // 볼륨 변경
   const handleVolumeChange = (event: Event, newValue: number | number[]) => {
     const value = newValue as number;
     setVolume(value);
@@ -195,18 +187,19 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   // 음소거 토글
   const toggleMute = () => {
-    if (playerRef.current) {
-      if (isMuted) {
-        playerRef.current.unMute();
-        setIsMuted(false);
-      } else {
-        playerRef.current.mute();
-        setIsMuted(true);
-      }
+    if (!playerRef.current) return;
+
+    if (isMuted) {
+      playerRef.current.unMute();
+      playerRef.current.setVolume(volume);
+      setIsMuted(false);
+    } else {
+      playerRef.current.mute();
+      setIsMuted(true);
     }
   };
 
-  // 진행 바 클릭 핸들러
+  // 진행 바 변경
   const handleProgressChange = (event: Event, newValue: number | number[]) => {
     const value = newValue as number;
     if (playerRef.current) {
@@ -233,7 +226,7 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     }
   };
 
-  // 시간 포맷팅 (mm:ss)
+  // 시간 형식 변환 (mm:ss)
   const formatTime = (time: number): string => {
     if (isNaN(time)) return "0:00";
 
@@ -242,23 +235,15 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   };
 
-  // 컴포넌트 제거 시 정리
+  // 컴포넌트 정리
   useEffect(() => {
-    return () => {
-      stopProgressTracking();
-    };
+    return () => stopProgressTracking();
   }, []);
 
-  // 전체 플레이어 토글
-  const toggleFullPlayer = () => {
-    setFullPlayerOpen(!fullPlayerOpen);
-  };
-
-  // 현재 비디오가 변경되면 플레이어 업데이트
+  // 현재 비디오 변경 시 처리
   useEffect(() => {
     setCurrentTime(0);
 
-    // 새 비디오가 설정되면 재생 상태를 true로 설정
     if (currentVideo) {
       setIsPlaying(true);
     } else {
@@ -267,297 +252,265 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
     }
   }, [currentVideo]);
 
+  // 전체 화면으로 열기
+  const openFullPlayer = () => setFullPlayerOpen(true);
+
+  // 전체 화면 닫기
+  const closeFullPlayer = () => setFullPlayerOpen(false);
+
+  // 볼륨 슬라이더 토글
+  const toggleVolumeSlider = () => setShowVolumeSlider(!showVolumeSlider);
+
   // 미니 플레이어 렌더링
   const renderMiniPlayer = () => {
     if (!currentVideo) return null;
 
     return (
-      <Card
+      <Paper
         elevation={3}
+        className="mini-player"
         sx={{
           position: "fixed",
-          bottom: isSmallScreen ? 56 : 0, // 모바일 탭 메뉴 위에 위치
+          bottom: isMobileDevice ? 56 : 0,
           left: 0,
           right: 0,
           zIndex: 10,
+          borderRadius: 0,
           bgcolor: "background.paper",
-          borderRadius: isSmallScreen ? 0 : "8px 8px 0 0",
           overflow: "hidden",
         }}
+        onClick={openFullPlayer}
       >
         {/* 진행 상태 바 */}
-        <LinearProgress
-          variant="determinate"
-          value={(currentTime / duration) * 100}
-          sx={{
-            height: 2,
-            "& .MuiLinearProgress-bar": {
-              bgcolor: "#1db954", // Spotify 그린 컬러
-              transition: "transform 0.1s linear",
-            },
-          }}
-        />
+        <Box className="progress-container">
+          <Box
+            className="progress-bar"
+            sx={{
+              height: 2,
+              width: "100%",
+              position: "relative",
+              bgcolor: "rgba(255,255,255,0.1)",
+            }}
+          >
+            <Box
+              className="progress-bar-fill"
+              sx={{
+                position: "absolute",
+                height: "100%",
+                left: 0,
+                bgcolor: "#1db954",
+                width: `${(currentTime / duration) * 100}%`,
+              }}
+            />
+          </Box>
+        </Box>
 
+        {/* 컨트롤 */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
-            px: isSmallScreen ? 1 : 2,
-            py: isSmallScreen ? 0.8 : 1.2,
+            px: 1.5,
+            py: 1,
           }}
         >
-          {/* 앨범 커버와 음악 정보 */}
+          {/* 앨범 아트와 정보 */}
           <Box
             sx={{
               display: "flex",
               alignItems: "center",
-              flexBasis: isSmallScreen ? "60%" : "40%",
+              flex: 1,
               overflow: "hidden",
-              cursor: "pointer",
-              "&:hover": { opacity: 0.9 },
+              mr: 1,
             }}
-            onClick={toggleFullPlayer}
           >
-            <Avatar
+            <Box
+              component="img"
               src={currentVideo.thumbnail}
               alt={currentVideo.title}
-              variant="rounded"
               sx={{
-                width: isSmallScreen ? 40 : 56,
-                height: isSmallScreen ? 40 : 56,
-                mr: 1.5,
+                width: isMobileDevice ? 40 : 48,
+                height: isMobileDevice ? 40 : 48,
                 borderRadius: 1,
+                objectFit: "cover",
+                mr: 1.5,
               }}
             />
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-              }}
-            >
+            <Box sx={{ overflow: "hidden" }}>
               <Typography
-                variant={isSmallScreen ? "body2" : "body1"}
+                variant="body2"
                 noWrap
-                sx={{ fontWeight: 500 }}
+                sx={{ fontWeight: 500, lineHeight: 1.2 }}
               >
                 {currentVideo.title}
               </Typography>
-              <Typography
-                variant={isSmallScreen ? "caption" : "body2"}
-                color="text.secondary"
-                noWrap
-              >
+              <Typography variant="caption" color="text.secondary" noWrap>
                 {currentVideo.channelTitle}
               </Typography>
             </Box>
-            {isSmallScreen ? null : (
-              <IconButton
-                size="small"
-                onClick={toggleFullPlayer}
-                sx={{ ml: 1 }}
-              >
-                <ExpandLess />
-              </IconButton>
-            )}
           </Box>
 
-          {/* 재생 컨트롤 */}
-          <Stack
-            direction="row"
-            spacing={isSmallScreen ? 0.5 : 1.5}
-            alignItems="center"
-            sx={{ flexBasis: isSmallScreen ? "40%" : "30%" }}
-          >
-            {!isSmallScreen && (
-              <IconButton
-                onClick={onPrevious}
-                disabled={!hasPreviousTrack && playbackHistory.length === 0}
-                size={isSmallScreen ? "small" : "medium"}
-              >
-                <SkipPrevious />
-              </IconButton>
-            )}
-
+          {/* 컨트롤 버튼 */}
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            {/* 재생 버튼 */}
             <IconButton
-              onClick={togglePlayPause}
-              size={isSmallScreen ? "small" : "medium"}
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlayPause();
+              }}
+              className="play-button"
+              size="small"
               sx={{
-                bgcolor: "#1db954", // Spotify 그린 컬러
                 color: "white",
+                bgcolor: "#1db954",
                 "&:hover": { bgcolor: "#1ed760" },
-                width: isSmallScreen ? 32 : 40,
-                height: isSmallScreen ? 32 : 40,
+                width: isMobileDevice ? 36 : 40,
+                height: isMobileDevice ? 36 : 40,
+                ml: 1,
               }}
             >
               {isPlaying ? <Pause /> : <PlayArrow />}
             </IconButton>
-
-            {!isSmallScreen && (
-              <IconButton
-                onClick={onNext}
-                disabled={queue.length === 0 && !hasNextTrack}
-                size={isSmallScreen ? "small" : "medium"}
-              >
-                <SkipNext />
-              </IconButton>
-            )}
-
-            {isSmallScreen ? (
-              <IconButton
-                size="small"
-                onClick={onToggleQueue}
-                sx={{ ml: isSmallScreen ? 0.5 : 1 }}
-              >
-                <QueueMusic fontSize="small" />
-              </IconButton>
-            ) : (
-              <>
-                <IconButton onClick={toggleMute} size="small">
-                  {isMuted || volume === 0 ? (
-                    <VolumeOff fontSize="small" />
-                  ) : (
-                    <VolumeUp fontSize="small" />
-                  )}
-                </IconButton>
-                <Box
-                  sx={{
-                    width: 60,
-                    ml: 0.5,
-                    display: { xs: "none", sm: "block" },
-                  }}
-                >
-                  <Slider
-                    size="small"
-                    value={isMuted ? 0 : volume}
-                    onChange={handleVolumeChange}
-                    aria-label="Volume"
-                    min={0}
-                    max={100}
-                    sx={{
-                      color: "#1db954",
-                      "& .MuiSlider-thumb": {
-                        width: 10,
-                        height: 10,
-                      },
-                    }}
-                  />
-                </Box>
-              </>
-            )}
-          </Stack>
+          </Box>
         </Box>
-      </Card>
+      </Paper>
     );
   };
 
-  // 전체 화면 플레이어 렌더링
+  // 전체 플레이어 렌더링
   const renderFullPlayer = () => {
     if (!currentVideo) return null;
 
     return (
-      <Drawer
+      <SwipeableDrawer
         anchor="bottom"
         open={fullPlayerOpen}
-        onClose={toggleFullPlayer}
+        onClose={closeFullPlayer}
+        onOpen={openFullPlayer}
+        disableSwipeToOpen
+        swipeAreaWidth={0}
+        ModalProps={{
+          keepMounted: true,
+        }}
         PaperProps={{
           sx: {
-            height: "calc(100% - 56px)",
-            bgcolor: "background.default",
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.8), rgba(18,18,18,0.95)), url(${currentVideo.thumbnail})`,
+            height: "100%",
+            backgroundColor: "#121212",
+            backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(18,18,18,0.9)), url(${currentVideo.thumbnail})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
-            backgroundBlendMode: "darken",
+            backgroundRepeat: "no-repeat",
           },
         }}
       >
-        <Container maxWidth="sm" sx={{ height: "100%", pt: 3, pb: 4 }}>
-          {/* 헤더 - 닫기 버튼 */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              mb: 2,
-            }}
+        {/* 상단 닫기 핸들 */}
+        <Box
+          sx={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            pt: 2,
+            pb: 1,
+          }}
+        >
+          <IconButton
+            onClick={closeFullPlayer}
+            color="inherit"
+            sx={{ color: "rgba(255,255,255,0.8)" }}
           >
-            <IconButton onClick={toggleFullPlayer} sx={{ color: "white" }}>
-              <ExpandMore />
-            </IconButton>
-          </Box>
+            <KeyboardArrowDown />
+          </IconButton>
+        </Box>
 
-          {/* 앨범 아트 */}
+        {/* 앨범 아트 */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            px: 3,
+            py: 2,
+            flex: 1,
+          }}
+        >
           <Box
+            className="album-art"
             sx={{
-              width: "100%",
-              display: "flex",
-              justifyContent: "center",
+              width: isMobileDevice ? "75%" : "50%",
+              aspectRatio: "1",
               mb: 4,
+              mt: 2,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+              borderRadius: 2,
+              overflow: "hidden",
             }}
           >
-            <Box
-              sx={{
-                width: isSmallScreen ? "70%" : "60%",
-                aspectRatio: "1",
-                borderRadius: 2,
-                overflow: "hidden",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+            <img
+              src={currentVideo.thumbnail}
+              alt={currentVideo.title}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
               }}
-            >
-              <img
-                src={currentVideo.thumbnail}
-                alt={currentVideo.title}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-            </Box>
+            />
           </Box>
 
-          {/* 음악 정보 */}
-          <Box sx={{ textAlign: "center", mb: 4 }}>
+          {/* 노래 정보 */}
+          <Box sx={{ width: "100%", mb: 3 }}>
             <Typography
-              variant="h5"
+              variant="h6"
+              align="center"
               sx={{
                 fontWeight: "bold",
-                mb: 1,
                 color: "white",
+                mb: 0.5,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
               }}
             >
               {currentVideo.title}
             </Typography>
             <Typography
-              variant="subtitle1"
+              variant="subtitle2"
+              align="center"
               sx={{ color: "rgba(255,255,255,0.7)" }}
             >
               {currentVideo.channelTitle}
             </Typography>
           </Box>
 
-          {/* 재생 진행 바 */}
-          <Box sx={{ mb: 4 }}>
+          {/* 진행 바 */}
+          <Box sx={{ width: "100%", px: 1, mb: 4 }}>
             <Slider
               value={currentTime}
-              max={duration}
+              max={duration || 100}
               onChange={handleProgressChange}
-              aria-label="progress"
               sx={{
                 color: "#1db954",
                 height: 4,
                 "& .MuiSlider-thumb": {
                   width: 12,
                   height: 12,
+                  transition: "0.3s all",
+                  "&:hover, &.Mui-active": {
+                    boxShadow: "0px 0px 0px 8px rgba(29, 185, 84, 0.16)",
+                  },
                 },
-                mb: 1,
+                "& .MuiSlider-rail": {
+                  opacity: 0.3,
+                },
               }}
             />
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
-                px: 1,
+                mt: 1,
+                px: 0.5,
               }}
             >
               <Typography
@@ -576,61 +529,76 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
           </Box>
 
           {/* 재생 컨트롤 */}
-          <Stack
-            direction="row"
-            spacing={2}
-            justifyContent="center"
-            alignItems="center"
-            sx={{ mb: 3 }}
+          <Box
+            sx={{
+              display: "flex",
+              width: "100%",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 4,
+            }}
           >
             <IconButton
               onClick={() =>
                 onShuffleChange && onShuffleChange(!shuffleEnabled)
               }
-              color={shuffleEnabled ? "primary" : "default"}
-              sx={{ color: shuffleEnabled ? "#1db954" : "white" }}
+              sx={{
+                color: shuffleEnabled ? "#1db954" : "rgba(255,255,255,0.7)",
+              }}
             >
               <Shuffle />
             </IconButton>
 
-            <IconButton
-              onClick={onPrevious}
-              disabled={!hasPreviousTrack && playbackHistory.length === 0}
+            <Box
               sx={{
-                color: "white",
-                "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 2,
               }}
             >
-              <SkipPrevious fontSize="large" />
-            </IconButton>
+              <IconButton
+                onClick={onPrevious}
+                disabled={!hasPreviousTrack && playbackHistory.length === 0}
+                sx={{
+                  color: "white",
+                  fontSize: "2rem",
+                  "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
+                }}
+              >
+                <SkipPrevious fontSize="large" />
+              </IconButton>
 
-            <IconButton
-              onClick={togglePlayPause}
-              sx={{
-                bgcolor: "#1db954",
-                color: "white",
-                "&:hover": { bgcolor: "#1ed760" },
-                width: 64,
-                height: 64,
-              }}
-            >
-              {isPlaying ? (
-                <Pause fontSize="large" />
-              ) : (
-                <PlayArrow fontSize="large" />
-              )}
-            </IconButton>
+              <IconButton
+                onClick={togglePlayPause}
+                className="play-button"
+                sx={{
+                  color: "white",
+                  bgcolor: "#1db954",
+                  "&:hover": { bgcolor: "#1ed760" },
+                  width: 64,
+                  height: 64,
+                }}
+              >
+                {isPlaying ? (
+                  <Pause sx={{ fontSize: 32 }} />
+                ) : (
+                  <PlayArrow sx={{ fontSize: 32 }} />
+                )}
+              </IconButton>
 
-            <IconButton
-              onClick={onNext}
-              disabled={queue.length === 0 && !hasNextTrack}
-              sx={{
-                color: "white",
-                "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
-              }}
-            >
-              <SkipNext fontSize="large" />
-            </IconButton>
+              <IconButton
+                onClick={onNext}
+                disabled={queue.length === 0 && !hasNextTrack}
+                sx={{
+                  color: "white",
+                  fontSize: "2rem",
+                  "&.Mui-disabled": { color: "rgba(255,255,255,0.3)" },
+                }}
+              >
+                <SkipNext fontSize="large" />
+              </IconButton>
+            </Box>
 
             <IconButton
               onClick={() =>
@@ -644,42 +612,108 @@ const MusicPlayer: React.FC<MusicPlayerProps> = ({
                 )
               }
               sx={{
-                color: repeatMode !== "none" ? "#1db954" : "white",
+                color:
+                  repeatMode !== "none" ? "#1db954" : "rgba(255,255,255,0.7)",
               }}
             >
               {repeatMode === "one" ? <RepeatOne /> : <Repeat />}
             </IconButton>
-          </Stack>
+          </Box>
 
-          {/* 대기열 버튼 */}
-          <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <IconButton onClick={onToggleQueue} sx={{ color: "white" }}>
+          {/* 볼륨 & 대기열 */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              width: "100%",
+              px: 2,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                position: "relative",
+              }}
+            >
+              <IconButton
+                onClick={toggleVolumeSlider}
+                sx={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                {isMuted || volume === 0 ? <VolumeOff /> : <VolumeUp />}
+              </IconButton>
+
+              {showVolumeSlider && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    left: 0,
+                    top: -80,
+                    width: 40,
+                    height: 80,
+                    bgcolor: "rgba(0,0,0,0.7)",
+                    borderRadius: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    p: 1,
+                    zIndex: 10,
+                  }}
+                >
+                  <Slider
+                    orientation="vertical"
+                    value={isMuted ? 0 : volume}
+                    onChange={handleVolumeChange}
+                    min={0}
+                    max={100}
+                    sx={{
+                      color: "#1db954",
+                      height: "100%",
+                      "& .MuiSlider-thumb": {
+                        width: 10,
+                        height: 10,
+                      },
+                    }}
+                  />
+                </Box>
+              )}
+            </Box>
+
+            <IconButton
+              onClick={onToggleQueue}
+              sx={{ color: "rgba(255,255,255,0.7)" }}
+            >
               <QueueMusic />
               {queue.length > 0 && (
                 <Typography
                   variant="caption"
-                  sx={{ ml: 1, color: "rgba(255,255,255,0.7)" }}
+                  sx={{
+                    ml: 0.5,
+                    fontSize: "0.6rem",
+                    color: "rgba(255,255,255,0.9)",
+                  }}
                 >
-                  {queue.length} 곡
+                  {queue.length}
                 </Typography>
               )}
             </IconButton>
           </Box>
-        </Container>
-      </Drawer>
+        </Box>
+      </SwipeableDrawer>
     );
   };
 
   return (
     <>
-      {/* YouTube 플레이어 (숨김 처리) */}
+      {/* 숨겨진 유튜브 플레이어 */}
       <Box
         sx={{
-          position: "fixed",
+          position: "absolute",
           top: -9999,
           left: -9999,
-          visibility: "hidden",
           zIndex: -1,
+          opacity: 0.01,
         }}
       >
         {currentVideo && (

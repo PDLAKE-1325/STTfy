@@ -28,6 +28,7 @@ import {
   DialogActions,
   useMediaQuery,
   Stack,
+  SwipeableDrawer,
 } from "@mui/material";
 import { HashRouter as Router } from "react-router-dom";
 import {
@@ -794,85 +795,134 @@ function App() {
     if (filteredVideos.length === 0) return null;
 
     return (
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
+      <Box sx={{ mb: 3 }}>
+        <Typography
+          variant={isMobile ? "subtitle1" : "h6"}
+          sx={{
+            mb: 1.5,
+            fontWeight: "bold",
+            px: isMobile ? 1 : 0,
+          }}
+        >
           {title}
         </Typography>
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 2,
-            justifyContent: isMobile ? "center" : "flex-start",
-          }}
-          className="music-grid-container"
-        >
+        <Box className="music-grid-container">
           {filteredVideos.map((video) => (
             <Box
               key={video.id}
-              sx={{
-                width: isMobile ? "calc(50% - 8px)" : 200,
-                cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
-                transition: "opacity 0.2s",
-                position: "relative",
-              }}
               className={`album-art ${
                 isVideoDownloaded(video.id) ? "saved-music" : ""
               } ${currentVideo?.id === video.id ? "now-playing" : ""}`}
+              sx={{
+                cursor: "pointer",
+                transition: "all 0.2s",
+                borderRadius: 2,
+                overflow: "hidden",
+                position: "relative",
+              }}
             >
               <Box
                 onClick={() => handleVideoPlay(video)}
                 sx={{ width: "100%" }}
               >
-                <img
-                  src={video.thumbnail}
-                  alt={video.title}
-                  style={{
-                    width: "100%",
-                    borderRadius: 4,
-                    aspectRatio: "16/9",
-                    objectFit: "cover",
+                <Box
+                  sx={{
+                    position: "relative",
+                    paddingTop: "56.25%" /* 16:9 비율 */,
+                    overflow: "hidden",
+                    borderRadius: 2,
                   }}
-                />
+                >
+                  <img
+                    src={video.thumbnail}
+                    alt={video.title}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                    loading="lazy"
+                  />
+                </Box>
                 <Typography
-                  variant={isMobile ? "body2" : "body1"}
-                  noWrap
-                  sx={{ mt: 1 }}
-                  className={isMobile ? "mobile-title" : ""}
+                  variant="body2"
+                  className="mobile-title"
+                  sx={{
+                    mt: 1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    lineHeight: 1.2,
+                  }}
                 >
                   {video.title}
                 </Typography>
                 <Typography
-                  variant={isMobile ? "caption" : "body2"}
+                  variant="caption"
                   color="text.secondary"
-                  className={isMobile ? "mobile-subtitle" : ""}
+                  className="mobile-subtitle"
+                  sx={{
+                    display: "block",
+                    mt: 0.5,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
                 >
                   {video.channelTitle}
                 </Typography>
 
                 {isVideoDownloaded(video.id) && (
-                  <Box sx={{ position: "absolute", top: 5, left: 5 }}>
-                    <DownloadIcon fontSize="small" sx={{ color: "#00BFFF" }} />
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 8,
+                      left: 8,
+                      bgcolor: "rgba(0,0,0,0.6)",
+                      borderRadius: "50%",
+                      p: 0.5,
+                    }}
+                  >
+                    <DownloadIcon
+                      sx={{
+                        color: "primary.main",
+                        fontSize: 16,
+                      }}
+                    />
                   </Box>
                 )}
               </Box>
 
               {!isOffline && !isVideoDownloaded(video.id) && (
-                <IconButton
-                  size="small"
-                  onClick={() => handleDownloadVideo(video)}
+                <Box
                   sx={{
                     position: "absolute",
-                    top: 5,
-                    right: 5,
-                    bgcolor: "rgba(0,0,0,0.7)",
-                    "&:hover": { bgcolor: "rgba(0,0,0,0.9)" },
+                    top: 8,
+                    right: 8,
+                    zIndex: 1,
                   }}
-                  className="download-btn"
                 >
-                  <DownloadIcon fontSize="small" />
-                </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadVideo(video);
+                    }}
+                    sx={{
+                      bgcolor: "rgba(0,0,0,0.6)",
+                      color: "white",
+                      "&:hover": { bgcolor: "rgba(0,0,0,0.8)" },
+                      p: 0.5,
+                    }}
+                  >
+                    <DownloadIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
               )}
             </Box>
           ))}
@@ -892,10 +942,63 @@ function App() {
 
     if (searchQuery && searchResults.length === 0 && !isSearching) {
       return (
-        <Box sx={{ p: 4, textAlign: "center" }}>
+        <Box
+          sx={{
+            py: 4,
+            px: 2,
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "30vh",
+          }}
+        >
+          <Box sx={{ mb: 2, opacity: 0.6 }}>
+            <svg
+              width="64"
+              height="64"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              <line x1="11" y1="8" x2="11" y2="14"></line>
+              <line x1="8" y1="11" x2="14" y2="11"></line>
+            </svg>
+          </Box>
           <Typography variant="body1" color="text.secondary">
             "{searchQuery}"에 대한 검색 결과가 없습니다.
           </Typography>
+          <Button
+            variant="outlined"
+            color="primary"
+            sx={{ mt: 2 }}
+            startIcon={<SearchIcon />}
+            onClick={() => setSearchQuery("")}
+          >
+            다시 검색하기
+          </Button>
+        </Box>
+      );
+    }
+
+    if (isSearching) {
+      return (
+        <Box
+          sx={{
+            py: 4,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "30vh",
+          }}
+        >
+          <Typography color="text.secondary">검색 중...</Typography>
         </Box>
       );
     }
@@ -907,32 +1010,55 @@ function App() {
         {renderMusicGrid(trendingVideos, "최신 트렌드")}
 
         {/* 장르별 음악 */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
+        <Box sx={{ mb: 4, px: isMobile ? 1 : 0 }}>
+          <Typography
+            variant={isMobile ? "subtitle1" : "h6"}
+            sx={{
+              mb: 1.5,
+              fontWeight: "bold",
+            }}
+          >
             장르별 음악
           </Typography>
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: isMobile
+                ? "repeat(2, 1fr)"
+                : "repeat(auto-fill, minmax(150px, 1fr))",
+              gap: 1.5,
+            }}
+          >
             {["팝", "락", "힙합", "재즈", "클래식", "K-Pop"].map(
               (genre, index) => (
-                <Paper
+                <Box
                   key={genre}
                   className="genre-card"
                   sx={{
-                    width: 150,
-                    height: 100,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    cursor: "pointer",
+                    height: isMobile ? 80 : 100,
+                    borderRadius: 2,
                     backgroundImage: `url(https://source.unsplash.com/random/150x100?${genre}-music&sig=${index})`,
                     backgroundSize: "cover",
                     backgroundPosition: "center",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    position: "relative",
                   }}
                 >
-                  <Typography variant="subtitle1" className="genre-text">
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      color: "white",
+                      fontWeight: 700,
+                      position: "relative",
+                      zIndex: 1,
+                      textShadow: "0 1px 3px rgba(0,0,0,0.5)",
+                    }}
+                  >
                     {genre}
                   </Typography>
-                </Paper>
+                </Box>
               )
             )}
           </Box>
@@ -953,10 +1079,30 @@ function App() {
   const renderHistoryTab = () => {
     if (history.length === 0) {
       return (
-        <Box sx={{ p: 3, textAlign: "center" }}>
+        <Box
+          sx={{
+            py: 4,
+            textAlign: "center",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "50vh",
+            opacity: 0.7,
+          }}
+        >
+          <HistoryIcon sx={{ fontSize: 48, mb: 2, opacity: 0.6 }} />
           <Typography variant="body1" color="text.secondary">
             아직 시청 기록이 없습니다.
           </Typography>
+          <Button
+            variant="outlined"
+            color="primary"
+            sx={{ mt: 2 }}
+            onClick={() => setMainTabValue(0)}
+          >
+            음악 탐색하기
+          </Button>
         </Box>
       );
     }
@@ -1000,21 +1146,31 @@ function App() {
     });
 
     return (
-      <Box>
+      <Box sx={{ pb: 4 }}>
         {Object.entries(groupedHistory).map(([date, videos]) => (
-          <Box key={date} sx={{ mb: 4 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
+          <Box key={date} sx={{ mb: 3 }}>
+            <Typography
+              variant={isMobile ? "subtitle1" : "h6"}
+              sx={{
+                mb: 1.5,
+                fontWeight: "bold",
+                px: isMobile ? 1.5 : 0,
+              }}
+            >
               {date}
             </Typography>
-            <List sx={{ width: "100%" }}>
+
+            <Box sx={{ mb: 1 }}>
               {videos.map((video, index) => (
                 <Box
                   key={`${video.id}-${index}`}
                   sx={{
                     display: "flex",
-                    p: isMobile ? 0.8 : 1,
+                    p: 1.5,
                     borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.05)" },
+                    "&:active": {
+                      bgcolor: "rgba(255,255,255,0.05)",
+                    },
                   }}
                 >
                   <Box
@@ -1030,34 +1186,58 @@ function App() {
                       sx={{
                         width: isMobile ? 80 : 120,
                         flexShrink: 0,
-                        mr: isMobile ? 1 : 2,
+                        mr: 1.5,
+                        borderRadius: 1.5,
+                        overflow: "hidden",
+                        position: "relative",
+                        paddingTop: isMobile ? "45px" : "67.5px", // 16:9 비율 유지
                       }}
-                      className={isMobile ? "mobile-thumbnail" : ""}
                     >
                       <img
                         src={video.thumbnail}
                         alt={video.title}
                         style={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
                           width: "100%",
-                          borderRadius: 4,
-                          aspectRatio: "16/9",
+                          height: "100%",
                           objectFit: "cover",
                         }}
+                        loading="lazy"
                       />
                     </Box>
-                    <Box sx={{ flex: 1, overflow: "hidden" }}>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        overflow: "hidden",
+                        mr: 1,
+                      }}
+                    >
                       <Typography
-                        variant={isMobile ? "body2" : "body1"}
-                        noWrap
-                        className={isMobile ? "mobile-title" : ""}
+                        variant="body2"
+                        className="mobile-title"
+                        sx={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          lineHeight: 1.2,
+                        }}
                       >
                         {video.title}
                       </Typography>
                       <Typography
-                        variant={isMobile ? "caption" : "body2"}
+                        variant="caption"
                         color="text.secondary"
-                        noWrap
-                        className={isMobile ? "mobile-subtitle" : ""}
+                        className="mobile-subtitle"
+                        sx={{
+                          display: "block",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
                       >
                         {video.channelTitle}
                       </Typography>
@@ -1065,34 +1245,41 @@ function App() {
                         <Typography
                           variant="caption"
                           color="text.secondary"
-                          sx={{ fontSize: isMobile ? "10px" : "inherit" }}
+                          sx={{
+                            fontSize: "10px",
+                            opacity: 0.7,
+                          }}
                         >
-                          {new Date(video.viewedAt).toLocaleDateString(
+                          {new Date(video.viewedAt).toLocaleTimeString(
                             "ko-KR",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
+                            { hour: "2-digit", minute: "2-digit" }
                           )}
                         </Typography>
                       )}
                     </Box>
                   </Box>
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
                     <IconButton
-                      size={isMobile ? "small" : "medium"}
+                      size="small"
                       onClick={() => handleRemoveFromHistory(video.id)}
-                      edge="end"
+                      sx={{
+                        color: "text.secondary",
+                        "&:hover": { color: "error.main" },
+                      }}
+                      className="touch-target"
                     >
-                      <DeleteIcon fontSize={isMobile ? "small" : "medium"} />
+                      <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Box>
                 </Box>
               ))}
-            </List>
+            </Box>
           </Box>
         ))}
       </Box>
@@ -1563,24 +1750,16 @@ function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Router>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            minHeight: "100vh",
-            bgcolor: "background.default",
-            color: "text.primary",
-          }}
-        >
+        <Box className="app-container">
+          {/* 모바일 헤더 */}
           <AppBar
             position="sticky"
-            color="secondary"
-            className={isMobile ? "mobile-app-bar" : ""}
+            className="mobile-app-bar"
+            sx={{
+              backgroundColor: isMobile ? "transparent" : "background.paper",
+            }}
           >
-            <Toolbar
-              sx={{ justifyContent: "space-between" }}
-              className={isMobile ? "mobile-toolbar" : ""}
-            >
+            <Toolbar className={isMobile ? "mobile-toolbar" : ""}>
               <Typography
                 variant={isMobile ? "h6" : "h5"}
                 sx={{
@@ -1609,32 +1788,44 @@ function App() {
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center" }}>
                 <InstallPWA />
-                {queue.length > 0 && (
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ mr: 1, display: isMobile ? "none" : "block" }}
-                  >
-                    대기열: {queue.length}
-                  </Typography>
-                )}
-                <IconButton color="inherit" onClick={toggleQueue}>
+                <IconButton
+                  color="inherit"
+                  onClick={toggleQueue}
+                  className="touch-target"
+                >
                   <QueueMusic />
+                  {queue.length > 0 && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        bgcolor: "primary.main",
+                        borderRadius: "50%",
+                        width: 16,
+                        height: 16,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 10,
+                      }}
+                    >
+                      {queue.length}
+                    </Box>
+                  )}
                 </IconButton>
                 {user ? (
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Avatar
-                      src={user.photoURL}
-                      alt={user.displayName}
-                      sx={{
-                        width: isMobile ? 28 : 32,
-                        height: isMobile ? 28 : 32,
-                        cursor: "pointer",
-                        ml: 1,
-                      }}
-                      onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
-                    />
-                  </Box>
+                  <Avatar
+                    src={user.photoURL}
+                    alt={user.displayName}
+                    sx={{
+                      width: isMobile ? 32 : 36,
+                      height: isMobile ? 32 : 36,
+                      cursor: "pointer",
+                      ml: 1,
+                    }}
+                    onClick={(e) => setProfileMenuAnchor(e.currentTarget)}
+                  />
                 ) : (
                   <Button
                     color="inherit"
@@ -1648,10 +1839,10 @@ function App() {
             </Toolbar>
           </AppBar>
 
-          {/* 검색창 (모바일에서는 상단에 고정) */}
+          {/* 검색창 - 모바일에서 상단에 고정 */}
           <Paper
-            sx={{ mb: isMobile ? 1 : 2, p: isMobile ? 1 : 2 }}
-            className={isMobile ? "mobile-card mobile-search-container" : ""}
+            className="mobile-search-container"
+            elevation={isMobile ? 0 : 3}
           >
             <TextField
               fullWidth
@@ -1667,7 +1858,7 @@ function App() {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <SearchIcon />
+                    <SearchIcon fontSize={isMobile ? "small" : "medium"} />
                   </InputAdornment>
                 ),
                 endAdornment: searchQuery && (
@@ -1675,23 +1866,20 @@ function App() {
                     <IconButton
                       onClick={() => handleSearch(searchQuery)}
                       edge="end"
-                      size={isMobile ? "small" : "medium"}
+                      size="small"
+                      className="touch-target"
                     >
-                      <SearchIcon />
+                      <SearchIcon fontSize="small" />
                     </IconButton>
                   </InputAdornment>
                 ),
               }}
-              size={isMobile ? "small" : "medium"}
-              className={isMobile ? "mobile-search-field" : ""}
+              size="small"
+              className="mobile-search-field"
             />
           </Paper>
 
-          <Container
-            maxWidth="lg"
-            sx={{ flexGrow: 1, mb: isMobile ? 0 : 10, mt: isMobile ? 0 : 2 }}
-            className={isMobile ? "mobile-content" : ""}
-          >
+          <Container maxWidth="lg" className="mobile-content">
             {/* 데스크탑에서는 상단에 탭 메뉴 */}
             {!isMobile && (
               <Paper elevation={3} sx={{ mb: 3 }}>
@@ -1722,7 +1910,10 @@ function App() {
             {/* 모바일에서는 하단에 고정된 탭 메뉴와 별도의 콘텐츠 영역 */}
             {isMobile && (
               <>
-                <Box sx={{ p: 1.5 }} className="mobile-tabs-content">
+                <Box
+                  sx={{ pb: currentVideo ? 7 : 0 }}
+                  className="mobile-tabs-content"
+                >
                   {mainTabValue === 0 && renderHomeTab()}
                   {mainTabValue === 1 && renderHistoryTab()}
                   {mainTabValue === 2 && renderPlaylistsTab()}
@@ -1739,26 +1930,14 @@ function App() {
                     textColor="primary"
                     className="mobile-tabs"
                   >
-                    <Tab icon={<HomeIcon />} label="" aria-label="홈" />
-                    <Tab icon={<HistoryIcon />} label="" aria-label="기록" />
-                    <Tab
-                      icon={<LibraryMusic />}
-                      label=""
-                      aria-label="플레이리스트"
-                    />
-                    <Tab icon={<DownloadIcon />} label="" aria-label="저장됨" />
+                    <Tab icon={<HomeIcon />} aria-label="홈" />
+                    <Tab icon={<HistoryIcon />} aria-label="기록" />
+                    <Tab icon={<LibraryMusic />} aria-label="플레이리스트" />
+                    <Tab icon={<DownloadIcon />} aria-label="저장됨" />
                     <Tab
                       icon={<MusicNoteIcon />}
-                      label=""
                       aria-label="재생 중"
-                      sx={
-                        currentVideo
-                          ? {
-                              color: "primary.main",
-                              animation: "pulse 1.5s infinite",
-                            }
-                          : {}
-                      }
+                      className={currentVideo ? "now-playing-tab" : ""}
                     />
                   </Tabs>
                 </Paper>
@@ -1766,17 +1945,21 @@ function App() {
             )}
           </Container>
 
-          <Drawer
+          <SwipeableDrawer
             anchor="right"
             open={isQueueOpen}
             onClose={toggleQueue}
+            onOpen={() => setIsQueueOpen(true)}
+            swipeAreaWidth={isMobile ? 20 : 0}
+            disableDiscovery={!isMobile}
+            disableSwipeToOpen={!isMobile}
             PaperProps={{
               sx: {
                 width: isMobile ? "85vw" : "320px",
                 bgcolor: "background.paper",
               },
             }}
-            className={isMobile ? "mobile-drawer" : ""}
+            className="swipeable-drawer"
           >
             <Queue
               queue={queue}
@@ -1784,7 +1967,7 @@ function App() {
               onSelect={handleVideoSelect}
               onRemove={handleRemoveFromQueue}
             />
-          </Drawer>
+          </SwipeableDrawer>
 
           <AddToPlaylistDialog
             open={isAddToPlaylistOpen}
@@ -1810,6 +1993,8 @@ function App() {
           <Dialog
             open={isLoginRequiredOpen}
             onClose={() => setIsLoginRequiredOpen(false)}
+            fullWidth={isMobile}
+            maxWidth="xs"
           >
             <DialogTitle>로그인 필요</DialogTitle>
             <DialogContent>
@@ -1828,6 +2013,7 @@ function App() {
                   setIsLoginDialogOpen(true);
                 }}
                 color="primary"
+                variant="contained"
               >
                 로그인
               </Button>
@@ -1838,12 +2024,21 @@ function App() {
             open={snackbar.open}
             autoHideDuration={3000}
             onClose={handleCloseSnackbar}
-            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+            anchorOrigin={{
+              vertical: isMobile ? "top" : "bottom",
+              horizontal: "center",
+            }}
+            sx={{
+              bottom: isMobile ? 68 : 24,
+            }}
           >
             <Alert
               onClose={handleCloseSnackbar}
               severity={snackbar.severity}
-              sx={{ width: "100%" }}
+              sx={{
+                width: "100%",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              }}
             >
               {snackbar.message}
             </Alert>
