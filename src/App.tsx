@@ -27,7 +27,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { BrowserRouter as Router } from "react-router-dom";
+import { HashRouter as Router } from "react-router-dom";
 import {
   QueueMusic,
   History as HistoryIcon,
